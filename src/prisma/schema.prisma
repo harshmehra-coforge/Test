@@ -1,0 +1,564 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Management
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String
+  firstName   String
+  lastName    String
+  role        UserRole
+  isActive    Boolean  @default(true)
+  lastLogin   DateTime?
+  mfaEnabled  Boolean  @default(false)
+  mfaSecret   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  sessions    Session[]
+  auditLogs   AuditLog[]
+  
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  sessionToken String   @unique
+  refreshToken String?  @unique
+  expiresAt    DateTime
+  ipAddress    String?
+  userAgent    String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// Client Management
+model Client {
+  id            String        @id @default(uuid())
+  firstName     String
+  lastName      String
+  email         String        @unique
+  phone         String
+  dateOfBirth   DateTime
+  ssnEncrypted  String
+  
+  // Address
+  street        String
+  city          String
+  state         String
+  zipCode       String
+  country       String       @default("US")
+  
+  // Risk Profile
+  riskScore     Int?         @default(5)
+  riskTolerance RiskTolerance @default(MODERATE)
+  investmentExperience String?
+  timeHorizon   Int?         // years
+  liquidityNeeds String?
+  investmentObjectives Json?
+  
+  // Status
+  kycStatus     KYCStatus    @default(PENDING)
+  accountStatus AccountStatus @default(PENDING)
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  accounts      Account[]
+  goals         InvestmentGoal[]
+  complianceAlerts ComplianceAlert[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+
+  @@map("clients")
+}
+
+model Account {
+  id            String      @id @default(uuid())
+  clientId      String
+  accountNumber String      @unique
+  accountType   AccountType
+  baseCurrency  Currency    @default(USD)
+  totalValue    Decimal     @default(0) @db.Decimal(18, 2)
+  availableCash Decimal     @default(0) @db.Decimal(18, 2)
+  status        AccountStatus @default(ACTIVE)
+  openDate      DateTime    @default(now())
+  closeDate     DateTime?
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  client        Client      @relation(fields: [clientId], references: [id])
+  transactions  Transaction[]
+  portfolio     Portfolio?
+  
+  @@map("accounts")
+}
+
+// Transaction Management
+model Transaction {
+  id                String            @id @default(uuid())
+  accountId         String
+  type              TransactionType
+  amount            Decimal           @db.Decimal(18, 2)
+  currency          Currency
+  status            TransactionStatus @default(DRAFT)
+  initiatedBy       String
+  approvedBy        String?
+  settlementDate    DateTime?
+  confirmationNumber String?
+  
+  // Recipient Information (JSON)
+  recipientInfo     Json?
+  
+  // Metadata
+  complianceNotes   String?
+  failureReason     String?
+  exchangeRate      Decimal?          @db.Decimal(10, 6)
+  fees              Json?             // Array of fee objects
+  externalTransactionId String?
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  account           Account           @relation(fields: [accountId], references: [id])
+  complianceAlerts  ComplianceAlert[]
+  
+  @@map("transactions")
+}
+
+// Portfolio Management
+model Portfolio {
+  id                String    @id @default(uuid())
+  accountId         String    @unique
+  totalValue        Decimal   @default(0) @db.Decimal(18, 2)
+  
+  // Allocation percentages
+  equityAllocation  Decimal   @default(0) @db.Decimal(5, 2)
+  fixedIncomeAllocation Decimal @default(0) @db.Decimal(5, 2)
+  cashAllocation    Decimal   @default(100) @db.Decimal(5, 2)
+  alternativesAllocation Decimal? @db.Decimal(5, 2)
+  
+  // Target allocation
+  targetEquity      Decimal   @default(60) @db.Decimal(5, 2)
+  targetFixedIncome Decimal   @default(30) @db.Decimal(5, 2)
+  targetCash        Decimal   @default(10) @db.Decimal(5, 2)
+  targetAlternatives Decimal? @db.Decimal(5, 2)
+  
+  // Risk metrics
+  goalAlignmentScore Int      @default(5)
+  var95             Decimal?  @db.Decimal(10, 4)
+  beta              Decimal?  @db.Decimal(6, 4)
+  sharpeRatio       Decimal?  @db.Decimal(6, 4)
+  volatility        Decimal?  @db.Decimal(6, 4)
+  maxDrawdown       Decimal?  @db.Decimal(6, 4)
+  
+  lastRebalanceDate DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  account           Account   @relation(fields: [accountId], references: [id])
+  holdings          Holding[]
+  performanceData   PerformanceData[]
+  
+  @@map("portfolios")
+}
+
+model Holding {
+  id              String      @id @default(uuid())
+  portfolioId     String
+  securityId      String
+  securityType    SecurityType
+  symbol          String
+  name            String
+  quantity        Decimal     @db.Decimal(18, 6)
+  unitPrice       Decimal     @db.Decimal(10, 2)
+  marketValue     Decimal     @db.Decimal(18, 2)
+  costBasis       Decimal     @db.Decimal(18, 2)
+  unrealizedGainLoss Decimal  @db.Decimal(18, 2)
+  
+  lastUpdated     DateTime    @default(now())
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  portfolio       Portfolio   @relation(fields: [portfolioId], references: [id])
+  
+  @@map("holdings")
+}
+
+model PerformanceData {
+  id              String           @id @default(uuid())
+  portfolioId     String
+  period          PerformancePeriod
+  totalReturn     Decimal          @db.Decimal(8, 4)
+  annualizedReturn Decimal         @db.Decimal(8, 4)
+  benchmarkReturn Decimal?         @db.Decimal(8, 4)
+  alpha           Decimal?         @db.Decimal(6, 4)
+  beta            Decimal?         @db.Decimal(6, 4)
+  sharpeRatio     Decimal?         @db.Decimal(6, 4)
+  volatility      Decimal          @db.Decimal(6, 4)
+  maxDrawdown     Decimal          @db.Decimal(6, 4)
+  startDate       DateTime
+  endDate         DateTime
+  
+  createdAt       DateTime         @default(now())
+
+  // Relations
+  portfolio       Portfolio        @relation(fields: [portfolioId], references: [id])
+  
+  @@unique([portfolioId, period, startDate])
+  @@map("performance_data")
+}
+
+// Compliance Management
+model ComplianceAlert {
+  id            String              @id @default(uuid())
+  clientId      String
+  transactionId String?
+  alertType     ComplianceAlertType
+  severity      AlertSeverity
+  description   String
+  status        AlertStatus         @default(OPEN)
+  assignedTo    String?
+  requiresReview Boolean            @default(true)
+  dueDate       DateTime?
+  resolution    String?
+  
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  // Relations
+  client        Client              @relation(fields: [clientId], references: [id])
+  transaction   Transaction?        @relation(fields: [transactionId], references: [id])
+  
+  @@map("compliance_alerts")
+}
+
+model ComplianceRule {
+  id            String      @id @default(uuid())
+  name          String
+  description   String
+  ruleType      String      // AML, OFAC, THRESHOLD, etc.
+  conditions    Json        // Rule conditions as JSON
+  actions       Json        // Actions to take when rule triggers
+  isActive      Boolean     @default(true)
+  priority      Int         @default(1)
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  @@map("compliance_rules")
+}
+
+// Notification Management
+model Notification {
+  id            String              @id @default(uuid())
+  recipientId   String
+  type          NotificationType
+  channel       NotificationChannel
+  subject       String
+  message       String
+  status        NotificationStatus  @default(PENDING)
+  priority      NotificationPriority @default(NORMAL)
+  scheduledAt   DateTime?
+  sentAt        DateTime?
+  readAt        DateTime?
+  metadata      Json?
+  
+  createdAt     DateTime            @default(now())
+
+  // Relations
+  recipient     Client              @relation(fields: [recipientId], references: [id])
+  
+  @@map("notifications")
+}
+
+model NotificationTemplate {
+  id            String              @id @default(uuid())
+  name          String              @unique
+  type          NotificationType
+  channel       NotificationChannel
+  subject       String
+  template      String              // Template with placeholders
+  isActive      Boolean             @default(true)
+  
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  
+  @@map("notification_templates")
+}
+
+// Audit Management
+model AuditLog {
+  id            String      @id @default(uuid())
+  userId        String?
+  clientId      String?
+  serviceName   String
+  action        String
+  resourceType  String
+  resourceId    String?
+  beforeState   Json?
+  afterState    Json?
+  ipAddress     String?
+  userAgent     String?
+  sessionId     String?
+  success       Boolean     @default(true)
+  errorMessage  String?
+  metadata      Json?
+  
+  createdAt     DateTime    @default(now())
+
+  // Relations
+  user          User?       @relation(fields: [userId], references: [id])
+  client        Client?     @relation(fields: [clientId], references: [id])
+  
+  @@map("audit_logs")
+}
+
+// Investment Goals
+model InvestmentGoal {
+  id            String       @id @default(uuid())
+  clientId      String
+  name          String
+  description   String
+  targetAmount  Decimal      @db.Decimal(18, 2)
+  currentAmount Decimal      @default(0) @db.Decimal(18, 2)
+  targetDate    DateTime
+  priority      GoalPriority @default(MEDIUM)
+  status        GoalStatus   @default(ACTIVE)
+  riskTolerance RiskTolerance
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  client        Client       @relation(fields: [clientId], references: [id])
+  
+  @@map("investment_goals")
+}
+
+// Market Data (cached)
+model MarketData {
+  id            String      @id @default(uuid())
+  symbol        String      @unique
+  price         Decimal     @db.Decimal(10, 2)
+  change        Decimal     @db.Decimal(10, 2)
+  changePercent Decimal     @db.Decimal(6, 4)
+  volume        BigInt
+  marketCap     Decimal?    @db.Decimal(20, 2)
+  
+  timestamp     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  @@map("market_data")
+}
+
+model ExchangeRate {
+  id            String      @id @default(uuid())
+  fromCurrency  Currency
+  toCurrency    Currency
+  rate          Decimal     @db.Decimal(10, 6)
+  source        String
+  
+  timestamp     DateTime    @default(now())
+  
+  @@unique([fromCurrency, toCurrency, timestamp])
+  @@map("exchange_rates")
+}
+
+// Configuration and Settings
+model SystemConfig {
+  id            String      @id @default(uuid())
+  key           String      @unique
+  value         String
+  description   String?
+  category      String      @default("general")
+  isEncrypted   Boolean     @default(false)
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  @@map("system_config")
+}
+
+// Enums
+enum UserRole {
+  CLIENT
+  ADVISOR
+  COMPLIANCE_OFFICER
+  OPERATIONS
+  ADMIN
+}
+
+enum Currency {
+  USD
+  EUR
+  GBP
+  CHF
+}
+
+enum RiskTolerance {
+  CONSERVATIVE
+  MODERATE
+  AGGRESSIVE
+}
+
+enum KYCStatus {
+  PENDING
+  VERIFIED
+  EXPIRED
+  REJECTED
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+  PENDING
+}
+
+enum AccountType {
+  INDIVIDUAL
+  JOINT
+  TRUST
+  CORPORATE
+}
+
+enum TransactionType {
+  WIRE_TRANSFER
+  ACH
+  INTERNAL_TRANSFER
+  CHECK
+  BILL_PAY
+  INVESTMENT_BUY
+  INVESTMENT_SELL
+  DIVIDEND
+  INTEREST
+  FEE
+}
+
+enum TransactionStatus {
+  DRAFT
+  PENDING
+  PENDING_APPROVAL
+  PENDING_COMPLIANCE
+  APPROVED
+  PROCESSING
+  SETTLED
+  FAILED
+  REJECTED
+  CANCELLED
+}
+
+enum SecurityType {
+  EQUITY
+  BOND
+  MUTUAL_FUND
+  ETF
+  CASH
+  ALTERNATIVE
+}
+
+enum PerformancePeriod {
+  ONE_DAY
+  ONE_WEEK
+  ONE_MONTH
+  THREE_MONTHS
+  SIX_MONTHS
+  ONE_YEAR
+  YEAR_TO_DATE
+  INCEPTION
+}
+
+enum ComplianceAlertType {
+  AML
+  OFAC
+  THRESHOLD
+  CONCENTRATION
+  SUITABILITY
+  KYC
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  FALSE_POSITIVE
+  ESCALATED
+}
+
+enum NotificationType {
+  TRANSACTION_CONFIRMATION
+  PAYMENT_APPROVAL
+  COMPLIANCE_ALERT
+  PORTFOLIO_UPDATE
+  SECURITY_ALERT
+  SYSTEM_MAINTENANCE
+  WELCOME
+  PASSWORD_RESET
+  MFA_CODE
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum GoalPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum GoalStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
