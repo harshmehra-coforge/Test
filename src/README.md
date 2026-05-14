@@ -1,518 +1,515 @@
-# Wealth Management Platform
+# FNOL (First Notice of Loss) System
 
-A comprehensive microservices-based wealth management application platform built with Node.js, TypeScript, PostgreSQL, Redis, and Apache Kafka.
+A comprehensive Property & Casualty Insurance FNOL system built with modern microservices architecture using Java 21, Spring Boot 3.4.5, and cloud-native technologies.
 
-## Architecture Overview
+## 🏗️ Architecture Overview
 
-The platform consists of 7 core microservices:
+The FNOL system is designed as a cloud-native microservices architecture that modernizes legacy COBOL-based insurance claim processing. The system enables efficient management of insurance policies, claims processing, adjuster assignments, coverage validation, and comprehensive reporting capabilities.
 
-- **Event Bus Service (Port 3000)** - Central event-driven communication hub
-- **Payment Service (Port 3001)** - Multi-currency payment processing with compliance integration
-- **Portfolio Service (Port 3002)** - Portfolio management, performance tracking, and goal alignment
-- **Compliance Service (Port 3003)** - AML/OFAC compliance monitoring and screening
-- **Notification Service (Port 3004)** - Multi-channel notifications (Email, SMS, Push)
-- **Collaboration Hub Service (Port 3005)** - External system integration with Northern Trust
-- **Audit Service (Port 3006)** - Comprehensive audit logging and compliance reporting
+### Key Features
 
-## Technology Stack
+- **Microservices Architecture**: Domain-driven design with loosely coupled services
+- **Event-Driven Architecture**: Asynchronous communication using CQRS and Event Sourcing
+- **Cloud-Native Design**: Containerized deployment with Kubernetes orchestration
+- **API-First Approach**: RESTful APIs with OpenAPI 3.1.0 specifications
+- **Security by Design**: Multi-layered security with JWT authentication and OAuth2
+- **Scalability & Resilience**: Horizontal scaling with circuit breaker patterns
 
-### Backend & Runtime
-- **Node.js 20+** - JavaScript runtime
-- **TypeScript 5.0+** - Type-safe JavaScript
-- **Express.js 4.18+** - Web application framework
+## 🛠️ Technology Stack
 
-### Databases & Storage
-- **PostgreSQL 15+** - Primary database with ACID compliance
-- **Redis 7.0+** - Caching and session management
-- **Apache Kafka 3.5+** - Event streaming and message queuing
+| Component | Technology | Version | Purpose |
+|-----------|------------|---------|---------|
+| **Runtime** | Java | 21 (LTS) | Application runtime environment |
+| **Framework** | Spring Boot | 3.4.5 | Microservices framework |
+| **Web Framework** | Spring WebMVC | 6.2.7 | REST API development |
+| **Data Access** | Spring Data JPA | 3.4.5 | Database abstraction layer |
+| **Security** | Spring Security | 6.4.4 | Authentication & authorization |
+| **Service Discovery** | Netflix Eureka | Latest | Service registration & discovery |
+| **API Gateway** | Spring Cloud Gateway | Latest | Request routing & load balancing |
+| **Configuration** | Spring Cloud Config | Latest | Centralized configuration |
+| **Database** | MySQL | 9.4.0 | Primary data storage |
+| **Caching** | Redis | 8.2.1 | In-memory caching |
+| **Messaging** | RabbitMQ | 3.13.0 | Event-driven communication |
+| **Authentication** | JWT | java-jwt | Stateless authentication |
+| **Documentation** | OpenAPI/Swagger | 3.1.0 | API documentation |
+| **Build Tool** | Maven | 3.9.11 | Dependency management |
+| **Containerization** | Docker | Latest | Application packaging |
+| **Orchestration** | Kubernetes | 1.28+ | Container orchestration |
 
-### Security & Authentication
-- **JWT** - Stateless authentication with refresh tokens
-- **AES-256** - Data encryption at rest
-- **TLS 1.3** - Encryption in transit
-- **Multi-Factor Authentication** - TOTP, SMS, Email support
-- **Role-Based Access Control** - Fine-grained permissions
+## 🏢 System Architecture
 
-### Development & Operations
-- **Prisma** - Type-safe database ORM
-- **Docker & Docker Compose** - Containerization
-- **Kubernetes** - Container orchestration
-- **Jest** - Testing framework
-- **ESLint & Prettier** - Code quality and formatting
-- **Winston** - Structured logging
-- **Swagger/OpenAPI** - API documentation
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Web Client    │    │  Mobile Client  │    │  API Clients    │
+└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+          │                      │                      │
+          └──────────────────────┼──────────────────────┘
+                                 │
+                    ┌─────────────┴─────────────┐
+                    │      API Gateway          │
+                    │  (Spring Cloud Gateway)   │
+                    └─────────────┬─────────────┘
+                                  │
+        ┌─────────────────────────┼─────────────────────────┐
+        │                         │                         │
+┌───────▼────────┐    ┌──────────▼──────────┐    ┌─────────▼────────┐
+│ User Service   │    │   Policy Service    │    │  Claim Service   │
+│ (Auth & Users) │    │ (Policy Management) │    │ (FNOL Processing)│
+└────────────────┘    └─────────────────────┘    └──────────────────┘
+        │                         │                         │
+        └─────────────────────────┼─────────────────────────┘
+                                  │
+        ┌─────────────────────────┼─────────────────────────┐
+        │                         │                         │
+┌───────▼────────┐    ┌──────────▼──────────┐    ┌─────────▼────────┐
+│Adjuster Service│    │  Coverage Service   │    │ Report Service   │
+│ (Assignments)  │    │ (Validation Rules)  │    │ (Analytics)      │
+└────────────────┘    └─────────────────────┘    └──────────────────┘
+        │                         │                         │
+        └─────────────────────────┼─────────────────────────┘
+                                  │
+                    ┌─────────────▼─────────────┐
+                    │  Notification Service     │
+                    │ (Multi-channel Alerts)    │
+                    └───────────────────────────┘
+```
 
-## Quick Start
+## 📋 Prerequisites
+
+- **Java 21** (OpenJDK or Oracle JDK)
+- **Maven 3.9+**
+- **Docker 20.10+**
+- **Docker Compose 2.0+**
+- **Kubernetes 1.28+** (for production deployment)
+- **kubectl** (for Kubernetes management)
+
+## 🚀 Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/your-org/fnol-system.git
+cd fnol-system
+```
+
+### 2. Build All Services
+
+```bash
+# Build all microservices
+mvn clean package -DskipTests
+
+# Or build with Docker images
+mvn clean package -Pdocker
+```
+
+### 3. Start with Docker Compose (Recommended for Development)
+
+```bash
+# Start all services and infrastructure
+docker-compose up -d
+
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs -f api-gateway
+```
+
+### 4. Access the System
+
+- **API Gateway**: http://localhost:8080
+- **Eureka Dashboard**: http://localhost:8761
+- **Config Server**: http://localhost:8888
+- **Grafana Dashboard**: http://localhost:3000 (admin/admin)
+- **Prometheus**: http://localhost:9090
+- **RabbitMQ Management**: http://localhost:15672 (guest/guest)
+
+## 🔧 Development Setup
+
+### Local Development Environment
+
+1. **Start Infrastructure Services**
+   ```bash
+   # Start only infrastructure (MySQL, Redis, RabbitMQ)
+   docker-compose up -d mysql redis rabbitmq
+   ```
+
+2. **Run Services Individually**
+   ```bash
+   # Start Eureka Server
+   cd eureka-server && mvn spring-boot:run
+
+   # Start Config Server
+   cd config-server && mvn spring-boot:run
+
+   # Start API Gateway
+   cd api-gateway && mvn spring-boot:run
+
+   # Start individual microservices
+   cd user-service && mvn spring-boot:run
+   cd policy-service && mvn spring-boot:run
+   ```
+
+### Environment Configuration
+
+Create environment-specific configuration files:
+
+```bash
+# Development environment
+export SPRING_PROFILES_ACTIVE=dev
+export MYSQL_HOST=localhost
+export REDIS_HOST=localhost
+export RABBITMQ_HOST=localhost
+
+# Docker environment
+export SPRING_PROFILES_ACTIVE=docker
+
+# Kubernetes environment
+export SPRING_PROFILES_ACTIVE=kubernetes
+```
+
+## 🐳 Docker Deployment
+
+### Build Docker Images
+
+```bash
+# Build all service images
+docker-compose build
+
+# Build specific service
+docker build -t fnol/user-service:1.0.0 \
+  --build-arg JAR_FILE=user-service/target/user-service-1.0.0.jar .
+```
+
+### Docker Compose Profiles
+
+```bash
+# Development profile (minimal services)
+docker-compose --profile dev up -d
+
+# Full profile (all services + monitoring)
+docker-compose --profile full up -d
+
+# Production profile (optimized for production)
+docker-compose --profile prod up -d
+```
+
+## ☸️ Kubernetes Deployment
 
 ### Prerequisites
 
-- Node.js 20+
-- Docker and Docker Compose
-- PostgreSQL 15+ (if running locally)
-- Redis 7+ (if running locally)
-- Apache Kafka 3.5+ (if running locally)
+```bash
+# Create namespaces
+kubectl apply -f k8s/config/namespaces.yaml
 
-### Installation
+# Apply secrets and config maps
+kubectl apply -f k8s/config/secrets.yaml
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd wealth-management-platform
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-4. **Generate Prisma client**
-   ```bash
-   npm run db:generate
-   ```
-
-5. **Run database migrations**
-   ```bash
-   npm run db:migrate
-   ```
-
-6. **Seed the database**
-   ```bash
-   npm run db:seed
-   ```
-
-### Running with Docker Compose (Recommended)
-
-1. **Start all services**
-   ```bash
-   docker-compose up -d
-   ```
-
-2. **View logs**
-   ```bash
-   docker-compose logs -f
-   ```
-
-3. **Stop all services**
-   ```bash
-   docker-compose down
-   ```
-
-### Running Individual Services Locally
-
-1. **Start infrastructure services**
-   ```bash
-   docker-compose up -d postgres redis kafka
-   ```
-
-2. **Start individual services**
-   ```bash
-   # Event Bus Service
-   npm run start:event-bus
-
-   # Payment Service
-   npm run start:payment
-
-   # Portfolio Service
-   npm run start:portfolio
-
-   # Compliance Service
-   npm run start:compliance
-
-   # Notification Service
-   npm run start:notification
-
-   # Collaboration Hub Service
-   npm run start:collaboration
-
-   # Audit Service
-   npm run start:audit
-   ```
-
-## API Documentation
-
-Each service provides interactive API documentation via Swagger UI:
-
-- Event Bus: http://localhost:3000/api-docs
-- Payment Service: http://localhost:3001/api-docs
-- Portfolio Service: http://localhost:3002/api-docs
-- Compliance Service: http://localhost:3003/api-docs
-- Notification Service: http://localhost:3004/api-docs
-- Collaboration Hub: http://localhost:3005/api-docs
-- Audit Service: http://localhost:3006/api-docs
-
-## Health Checks
-
-Each service provides health check endpoints:
-
-- Health: `GET /health` - Basic service health
-- Ready: `GET /ready` - Service readiness with dependency checks
-
-## Configuration
-
-### Environment Variables
-
-Key environment variables (see `.env.example` for complete list):
+### Deploy Infrastructure
 
 ```bash
-# Service Configuration
-SERVICE_NAME=event-bus  # Service to start
-PORT=3000              # Service port
-NODE_ENV=development   # Environment
+# Deploy MySQL
+kubectl apply -f k8s/infrastructure/mysql.yaml
 
-# Database
-DATABASE_URL=postgresql://username:password@localhost:5432/wealth_management
+# Deploy Redis
+kubectl apply -f k8s/infrastructure/redis.yaml
 
-# Redis
-REDIS_URL=redis://localhost:6379
+# Deploy RabbitMQ
+kubectl apply -f k8s/infrastructure/rabbitmq.yaml
 
-# Kafka
-KAFKA_BROKERS=localhost:9092
-
-# Security
-JWT_SECRET=your-super-secret-jwt-key
-ENCRYPTION_KEY=your-32-character-encryption-key
-
-# External APIs
-NORTHERN_TRUST_API_KEY=your-api-key
-MARKET_DATA_API_KEY=your-api-key
-OFAC_API_KEY=your-api-key
+# Deploy Eureka and Config Server
+kubectl apply -f k8s/infrastructure/eureka-config.yaml
 ```
 
-### Business Rules Configuration
+### Deploy Application Services
 
 ```bash
-# Compliance Thresholds
-AML_THRESHOLD_AMOUNT=10000
-COMPLIANCE_REVIEW_THRESHOLD=1000000
+# Deploy API Gateway
+kubectl apply -f k8s/services/api-gateway.yaml
 
-# Account Limits
-MIN_ACCOUNT_BALANCE=250000
-MAX_DAILY_TRANSFER_LIMIT=10000000
-
-# Portfolio Management
-REBALANCING_THRESHOLD=0.05
-GOAL_ALIGNMENT_MIN_SCORE=6
+# Deploy microservices
+kubectl apply -f k8s/services/user-service.yaml
+kubectl apply -f k8s/services/policy-service.yaml
+kubectl apply -f k8s/services/claim-service.yaml
+kubectl apply -f k8s/services/adjuster-service.yaml
+kubectl apply -f k8s/services/coverage-service.yaml
+kubectl apply -f k8s/services/report-service.yaml
+kubectl apply -f k8s/services/notification-service.yaml
 ```
 
-## Development
-
-### Code Structure
-
-```
-src/
-├── config/           # Configuration management
-├── middleware/       # Express middleware
-├── services/         # Microservices
-│   ├── event-bus/    # Event Bus Service
-│   ├── payment/      # Payment Service
-│   ├── portfolio/    # Portfolio Service
-│   ├── compliance/   # Compliance Service
-│   ├── notification/ # Notification Service
-│   ├── collaboration/ # Collaboration Hub
-│   └── audit/        # Audit Service
-├── types/            # TypeScript type definitions
-├── utils/            # Utility functions
-└── index.ts          # Application entry point
-```
-
-### Development Commands
+### Monitoring and Observability
 
 ```bash
-# Development
-npm run dev                    # Start in development mode
-npm run build                  # Build for production
-npm run start                  # Start production build
+# Deploy Prometheus and Grafana
+kubectl apply -f k8s/monitoring/prometheus.yaml
+kubectl apply -f k8s/monitoring/grafana.yaml
 
-# Database
-npm run db:generate           # Generate Prisma client
-npm run db:migrate           # Run database migrations
-npm run db:seed              # Seed database with sample data
-npm run db:studio            # Open Prisma Studio
-
-# Testing
-npm run test                 # Run tests
-npm run test:watch          # Run tests in watch mode
-npm run test:coverage       # Run tests with coverage
-
-# Code Quality
-npm run lint                # Run ESLint
-npm run lint:fix           # Fix ESLint issues
-npm run format             # Format code with Prettier
-npm run type-check         # TypeScript type checking
-
-# Docker
-npm run docker:build       # Build Docker images
-npm run docker:up          # Start with Docker Compose
-npm run docker:down        # Stop Docker Compose
+# Deploy Jaeger for distributed tracing
+kubectl apply -f k8s/monitoring/jaeger.yaml
 ```
 
-### Testing
+## 🔐 Security Configuration
 
-The platform includes comprehensive testing:
+### JWT Configuration
 
-```bash
-# Unit Tests
-npm run test:unit
-
-# Integration Tests
-npm run test:integration
-
-# End-to-End Tests
-npm run test:e2e
-
-# Coverage Report
-npm run test:coverage
+```yaml
+jwt:
+  secret: ${JWT_SECRET:your-secret-key}
+  expiration: 86400 # 24 hours
+  refresh-expiration: 604800 # 7 days
 ```
 
-### Code Quality
+### Database Security
 
-- **ESLint** - Linting with TypeScript support
-- **Prettier** - Code formatting
-- **Husky** - Git hooks for pre-commit checks
-- **TypeScript** - Static type checking
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:fnol_db}?useSSL=true&requireSSL=true
+    username: ${MYSQL_USERNAME:fnol_user}
+    password: ${MYSQL_PASSWORD:fnol_password}
+```
 
-## Security
+### API Security
 
-### Authentication & Authorization
+All API endpoints are secured except:
+- `/api/v1/auth/login`
+- `/api/v1/auth/register`
+- `/actuator/health`
+- `/swagger-ui/**`
+- `/v3/api-docs/**`
 
-- **JWT Tokens** - Stateless authentication with 4-hour expiry
-- **Refresh Tokens** - 7-day expiry for token renewal
-- **Multi-Factor Authentication** - TOTP, SMS, and Email support
-- **Role-Based Access Control** - CLIENT, ADVISOR, COMPLIANCE_OFFICER, OPERATIONS, ADMIN
+## 📊 Monitoring and Observability
 
-### Data Protection
+### Metrics Collection
 
-- **Encryption at Rest** - AES-256-GCM for sensitive data
-- **Encryption in Transit** - TLS 1.3 for all communications
-- **Data Masking** - PII masking in logs and non-production environments
-- **Key Management** - Secure key rotation and storage
+- **Application Metrics**: Micrometer + Prometheus
+- **Infrastructure Metrics**: Node Exporter
+- **Custom Business Metrics**: Policy creation rate, claim processing time
 
-### Security Monitoring
+### Distributed Tracing
 
-- **Rate Limiting** - API rate limiting with different tiers
-- **Audit Logging** - Comprehensive audit trails
-- **Security Events** - Real-time security event monitoring
-- **Intrusion Detection** - Automated threat detection
-
-## Compliance
-
-### Regulatory Requirements
-
-- **AML (Anti-Money Laundering)** - Automated transaction monitoring
-- **OFAC Sanctions** - Real-time sanctions list screening
-- **KYC (Know Your Customer)** - Identity verification workflows
-- **SOX Compliance** - Financial reporting controls
-- **GDPR/CCPA** - Data privacy and protection
-
-### Audit & Reporting
-
-- **Immutable Audit Logs** - Tamper-proof audit trails
-- **Regulatory Reporting** - Automated compliance reports
-- **Data Retention** - 7-year retention for compliance records
-- **Examination Support** - Tools for regulatory examinations
-
-## Monitoring & Observability
+- **Jaeger**: End-to-end request tracing
+- **Correlation IDs**: Request correlation across services
 
 ### Logging
 
-- **Structured Logging** - JSON-formatted logs with Winston
-- **Log Levels** - DEBUG, INFO, WARN, ERROR, FATAL
-- **Request Tracing** - Unique request IDs for correlation
-- **Performance Logging** - Response time and resource usage
+- **Structured Logging**: JSON format with correlation IDs
+- **Log Aggregation**: ELK Stack (Elasticsearch, Logstash, Kibana)
+- **Log Levels**: INFO, WARN, ERROR with appropriate filtering
 
-### Metrics & Monitoring
-
-- **Health Checks** - Service health and dependency monitoring
-- **Performance Metrics** - Response times, throughput, error rates
-- **Business Metrics** - Transaction volumes, compliance rates
-- **Infrastructure Metrics** - CPU, memory, disk, network usage
-
-### Alerting
-
-- **Critical Alerts** - PagerDuty integration for critical issues
-- **Warning Alerts** - Slack notifications for warnings
-- **Compliance Alerts** - Real-time compliance violation alerts
-- **Performance Alerts** - SLA breach notifications
-
-## Deployment
-
-### Docker Deployment
+### Health Checks
 
 ```bash
-# Build and deploy all services
-docker-compose up -d
+# Check service health
+curl http://localhost:8080/actuator/health
 
-# Scale specific services
-docker-compose up -d --scale payment-service=3
-
-# Update specific service
-docker-compose up -d --no-deps payment-service
+# Check detailed health with authentication
+curl -H "Authorization: Bearer <token>" \
+  http://localhost:8080/actuator/health/detailed
 ```
 
-### Kubernetes Deployment
+## 🧪 Testing
+
+### Unit Tests
 
 ```bash
-# Deploy to Kubernetes
-kubectl apply -f k8s/
+# Run unit tests for all services
+mvn test
 
-# Check deployment status
-kubectl get pods -n wealth-management
-
-# View logs
-kubectl logs -f deployment/payment-service -n wealth-management
+# Run tests for specific service
+cd user-service && mvn test
 ```
 
-### Production Considerations
-
-- **Load Balancing** - Nginx or cloud load balancer
-- **Auto-Scaling** - Horizontal pod autoscaling based on metrics
-- **Database Scaling** - Read replicas and connection pooling
-- **Caching Strategy** - Redis cluster for high availability
-- **Backup & Recovery** - Automated backups with point-in-time recovery
-
-## API Examples
-
-### Authentication
+### Integration Tests
 
 ```bash
-# Login
-curl -X POST http://localhost:3001/api/v1/auth/login \
+# Run integration tests with TestContainers
+mvn verify -Pintegration-tests
+```
+
+### API Testing
+
+```bash
+# Import Postman collection
+# File: docs/postman/FNOL-API-Collection.json
+
+# Or use curl examples
+curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "client@example.com",
-    "password": "password123"
-  }'
-
-# Response
-{
-  "success": true,
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "user": {
-      "id": "uuid",
-      "email": "client@example.com",
-      "role": "CLIENT"
-    }
-  }
-}
+  -d '{"username":"admin","password":"password"}'
 ```
 
-### Create Payment
+## 📈 Performance Tuning
+
+### JVM Optimization
 
 ```bash
-curl -X POST http://localhost:3001/api/v1/payments \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "accountId": "account-uuid",
-    "type": "WIRE_TRANSFER",
-    "amount": "50000.00",
-    "currency": "USD",
-    "recipientInfo": {
-      "name": "John Doe",
-      "accountNumber": "123456789",
-      "routingNumber": "021000021",
-      "bankName": "Chase Bank"
-    }
-  }'
+# Production JVM settings
+JAVA_OPTS="-XX:+UseContainerSupport \
+           -XX:MaxRAMPercentage=75.0 \
+           -XX:+UseG1GC \
+           -XX:+UseStringDeduplication \
+           -XX:+PrintGCDetails \
+           -XX:+PrintGCTimeStamps"
 ```
 
-### Get Portfolio Performance
+### Database Optimization
 
-```bash
-curl -X GET "http://localhost:3002/api/v1/portfolios/portfolio-uuid/performance?period=1Y" \
-  -H "Authorization: Bearer <access_token>"
+```sql
+-- MySQL optimization settings
+SET GLOBAL innodb_buffer_pool_size = 1073741824; -- 1GB
+SET GLOBAL max_connections = 200;
+SET GLOBAL query_cache_size = 268435456; -- 256MB
 ```
 
-## Troubleshooting
+### Redis Configuration
+
+```redis
+# Redis optimization
+maxmemory 512mb
+maxmemory-policy allkeys-lru
+save 900 1
+save 300 10
+save 60 10000
+```
+
+## 🔄 CI/CD Pipeline
+
+### GitHub Actions Workflow
+
+```yaml
+name: FNOL CI/CD Pipeline
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+      - run: mvn clean test
+      
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: mvn clean package -DskipTests
+      - run: docker build -t fnol/app:${{ github.sha }} .
+      
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - run: kubectl apply -f k8s/
+```
+
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **Database Connection Issues**
+1. **Service Discovery Issues**
    ```bash
-   # Check database status
-   docker-compose ps postgres
+   # Check Eureka registration
+   curl http://localhost:8761/eureka/apps
    
-   # View database logs
-   docker-compose logs postgres
-   
-   # Reset database
-   docker-compose down -v
-   docker-compose up -d postgres
+   # Restart service with debug logging
+   java -Dlogging.level.com.netflix.eureka=DEBUG -jar app.jar
    ```
 
-2. **Kafka Connection Issues**
+2. **Database Connection Issues**
    ```bash
-   # Check Kafka status
-   docker-compose ps kafka
+   # Test MySQL connection
+   mysql -h localhost -u fnol_user -p fnol_db
    
-   # List Kafka topics
-   docker-compose exec kafka kafka-topics --bootstrap-server localhost:9092 --list
+   # Check connection pool metrics
+   curl http://localhost:8080/actuator/metrics/hikaricp.connections
    ```
 
-3. **Service Startup Issues**
+3. **Memory Issues**
    ```bash
-   # Check service logs
-   docker-compose logs service-name
+   # Check JVM memory usage
+   curl http://localhost:8080/actuator/metrics/jvm.memory.used
    
-   # Restart specific service
-   docker-compose restart service-name
+   # Generate heap dump
+   jcmd <pid> GC.run_finalization
+   jcmd <pid> VM.gc
    ```
 
-### Performance Tuning
+### Log Analysis
 
-1. **Database Optimization**
-   - Connection pooling configuration
-   - Query optimization and indexing
-   - Read replica configuration
+```bash
+# Follow application logs
+docker-compose logs -f user-service
 
-2. **Caching Strategy**
-   - Redis cache configuration
-   - Cache TTL optimization
-   - Cache invalidation strategies
+# Search for errors
+docker-compose logs user-service | grep ERROR
 
-3. **Event Processing**
-   - Kafka partition configuration
-   - Consumer group optimization
-   - Batch processing tuning
+# Check specific time range
+docker-compose logs --since="2024-01-01T10:00:00" user-service
+```
 
-## Contributing
+## 📚 API Documentation
 
-### Development Workflow
+### Swagger UI
+
+Access interactive API documentation at:
+- **API Gateway**: http://localhost:8080/swagger-ui.html
+- **Individual Services**: http://localhost:808X/swagger-ui.html
+
+### API Endpoints
+
+| Service | Base URL | Description |
+|---------|----------|-------------|
+| User Service | `/api/v1/auth`, `/api/v1/users` | Authentication & user management |
+| Policy Service | `/api/v1/policies` | Policy management |
+| Claim Service | `/api/v1/claims`, `/api/v1/fnol` | Claim processing |
+| Adjuster Service | `/api/v1/adjusters`, `/api/v1/assignments` | Adjuster management |
+| Coverage Service | `/api/v1/coverage` | Coverage validation |
+| Report Service | `/api/v1/reports` | Report generation |
+| Notification Service | `/api/v1/notifications` | Notification management |
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make changes with tests
-4. Run quality checks
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ### Code Standards
 
-- Follow TypeScript best practices
-- Write comprehensive tests
-- Document API changes
-- Follow conventional commit messages
-- Ensure security best practices
+- Follow Java coding conventions
+- Write unit tests for new features
+- Update documentation for API changes
+- Use conventional commit messages
 
-## License
+## 📄 License
 
-This project is proprietary software. All rights reserved.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## 📞 Support
 
-For technical support and questions:
+For support and questions:
+- **Email**: support@fnol-system.com
+- **Documentation**: https://docs.fnol-system.com
+- **Issues**: https://github.com/your-org/fnol-system/issues
 
-- **Documentation**: Check API documentation at `/api-docs` endpoints
-- **Issues**: Create GitHub issues for bugs and feature requests
-- **Security**: Report security issues privately to security@company.com
+## 🗺️ Roadmap
+
+- [ ] **Phase 1**: Core FNOL functionality (Q1 2024)
+- [ ] **Phase 2**: Advanced analytics and ML integration (Q2 2024)
+- [ ] **Phase 3**: Mobile application (Q3 2024)
+- [ ] **Phase 4**: Third-party integrations (Q4 2024)
 
 ---
 
-**Note**: This is a production-ready wealth management platform with comprehensive security, compliance, and monitoring capabilities. Ensure proper configuration and security measures before deploying to production environments.
+**Built with ❤️ by the FNOL Development Team**
