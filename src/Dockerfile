@@ -1,52 +1,40 @@
-# Use Node.js 20 Alpine as base image
-FROM node:20-alpine
+FROM openjdk:21-jre-slim
 
-# Set working directory
+LABEL maintainer="FNOL Team"
+LABEL version="1.0.0"
+LABEL description="Base Docker image for FNOL microservices"
+
+# Create app directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    && ln -sf python3 /usr/bin/python
-
-# Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
-COPY prisma/ ./prisma/
-
-# Install dependencies
-RUN npm ci --only=production
-
-# Generate Prisma client
-RUN npx prisma generate
-
-# Copy source code
-COPY src/ ./src/
-
-# Build the application
-RUN npm run build
-
-# Create logs directory
-RUN mkdir -p logs
-
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+RUN groupadd -r fnol && useradd -r -g fnol fnol
 
-# Change ownership of app directory
-RUN chown -R nodejs:nodejs /app
+# Install required packages
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy application jar
+ARG JAR_FILE
+COPY ${JAR_FILE} app.jar
+
+# Change ownership to non-root user
+RUN chown -R fnol:fnol /app
 
 # Switch to non-root user
-USER nodejs
-
-# Expose port (will be overridden by environment variable)
-EXPOSE 3000
+USER fnol
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3000) + '/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/actuator/health || exit 1
 
-# Start the application
-CMD ["npm", "start"]
+# Expose port
+EXPOSE 8080
+
+# JVM options for containerized environment
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication"
+
+# Run the application
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
