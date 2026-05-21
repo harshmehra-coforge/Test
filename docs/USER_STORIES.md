@@ -1,70 +1,126 @@
-# User Stories - FNOL (First Notice of Loss) Insurance System
+# User Stories
+## Property & Casualty Insurance FNOL System
+
+---
 
 ## Epic Breakdown
 
 ### Epic 1: Policy and Claims Reporting
-**Description:** Generate comprehensive reports for policies and their associated claims to support business analysis and compliance.
+**Description:** Comprehensive reporting capabilities for policies, claims, and their relationships
+**Business Value:** Enables data-driven decision making, audit compliance, and operational oversight
 
-### Epic 2: Claim Initiation and Management
-**Description:** Enable efficient creation, updating, and management of insurance claims through the FNOL process.
+### Epic 2: Claim Data Management
+**Description:** Core claim data entry, validation, and management functionality
+**Business Value:** Ensures accurate claim processing and data integrity
 
 ### Epic 3: Coverage Assessment and Matching
-**Description:** Facilitate accurate coverage assessment and matching for property claims to ensure proper liability determination.
+**Description:** Coverage validation, matching, and liability assessment capabilities
+**Business Value:** Reduces claim processing errors and ensures proper coverage application
 
-### Epic 4: Loss Details Management
-**Description:** Capture and manage detailed loss information including dates, descriptions, and cause analysis.
+### Epic 4: Claim Workflow Management
+**Description:** Claim lifecycle management, status tracking, and assignment functionality
+**Business Value:** Streamlines claim processing workflow and improves operational efficiency
 
-### Epic 5: Claim Workflow and Status Management
-**Description:** Support claim examination workflow and status tracking throughout the claim lifecycle.
-
-### Epic 6: Data Validation and Error Handling
-**Description:** Ensure data integrity through comprehensive validation and user-friendly error handling.
+### Epic 5: Data Validation and Error Handling
+**Description:** Input validation, error messaging, and data quality assurance
+**Business Value:** Prevents data entry errors and maintains system data integrity
 
 ---
 
 ## Feature Map
 
-### Reporting Features
-- Policy and Claims Report Generation
-- Policy No Claims Report Generation
-- Claim Adjudication Report Generation
+### Epic 1: Policy and Claims Reporting
+- **Feature 1.1:** Policy Claims Report Generation
+- **Feature 1.2:** Claims Without Policy Identification
+- **Feature 1.3:** Adjudication Reporting
+- **Feature 1.4:** Management Reporting
 
-### Claim Management Features
-- Claim Creation and Updates
-- Loss Details Entry and Modification
-- Claim Status Tracking
+### Epic 2: Claim Data Management
+- **Feature 2.1:** FNOL Data Entry
+- **Feature 2.2:** Loss Details Management
+- **Feature 2.3:** Property Information Management
+- **Feature 2.4:** Claim Party Management
 
-### Coverage Features
-- Coverage Type Selection
-- Coverage Match Validation
-- Property Address Management
+### Epic 3: Coverage Assessment and Matching
+- **Feature 3.1:** Coverage Type Selection
+- **Feature 3.2:** Coverage Validation
+- **Feature 3.3:** Coverage Match Processing
+- **Feature 3.4:** Liability Assessment
 
-### Workflow Features
-- Claim Examination Process
-- Adjuster Assignment
-- Status Progression
+### Epic 4: Claim Workflow Management
+- **Feature 4.1:** Claim Status Management
+- **Feature 4.2:** Assignment Management
+- **Feature 4.3:** Review Progress Tracking
+- **Feature 4.4:** Examination Completion
 
-### Validation Features
-- Input Data Validation
-- Business Rule Enforcement
-- Error Message Display
+### Epic 5: Data Validation and Error Handling
+- **Feature 5.1:** Input Validation
+- **Feature 5.2:** Error Message Display
+- **Feature 5.3:** Warning Systems
+- **Feature 5.4:** Data Quality Assurance
 
 ---
 
 ## User Personas
 
 ### Primary Users
-- **Business User**: Reviews policy and claim reports for operational oversight
-- **Business Analyst**: Analyzes policy data and identifies data integrity issues
-- **Manager**: Oversees claim operations and requires comprehensive reporting
-- **Claims Adjuster**: Assesses claim liability and updates coverage details
-- **Claims Representative**: Processes claims and categorizes property claims
-- **Data Entry Clerk**: Records property location and coverage details
-- **Claims Processor**: Handles claim detail updates and coverage matching
-- **Underwriter**: Reviews claim timeliness and assesses risk
 
-### System Users
-- **Batch System**: Automated report generation and data processing
+**Business Analyst**
+- **Role:** Data analysis and reporting specialist
+- **Goals:** Generate accurate reports for business insights and compliance
+- **Pain Points:** Manual report generation, data inconsistencies
+- **Technical Skill:** Medium
+
+**Claims Adjuster**
+- **Role:** Claim assessment and liability determination specialist
+- **Goals:** Accurately assess claims and determine coverage
+- **Pain Points:** Complex coverage rules, manual processes
+- **Technical Skill:** Medium
+
+**Claims Representative**
+- **Role:** Front-line claim processing specialist
+- **Goals:** Efficiently process claims and maintain data accuracy
+- **Pain Points:** Data entry errors, complex validation rules
+- **Technical Skill:** Medium
+
+**Data Entry Clerk**
+- **Role:** Data input and maintenance specialist
+- **Goals:** Accurately enter and maintain claim and policy data
+- **Pain Points:** Complex forms, validation errors
+- **Technical Skill:** Low to Medium
+
+**Claims Manager**
+- **Role:** Claims department supervisor and decision maker
+- **Goals:** Oversee claim processing and ensure compliance
+- **Pain Points:** Lack of visibility into claim status and workload
+- **Technical Skill:** Medium
+
+### Secondary Users
+
+**Underwriter**
+- **Role:** Risk assessment and policy terms specialist
+- **Goals:** Assess claim timeliness and policy compliance
+- **Technical Skill:** Medium
+
+**Claims Examiner**
+- **Role:** Detailed claim investigation specialist
+- **Goals:** Thoroughly examine claims and maintain accurate records
+- **Technical Skill:** Medium
+
+**Claims Processor**
+- **Role:** Claim processing workflow specialist
+- **Goals:** Process claims efficiently with minimal errors
+- **Technical Skill:** Medium
+
+**Claims Supervisor**
+- **Role:** Team supervision and workload management
+- **Goals:** Manage team workload and ensure quality
+- **Technical Skill:** Medium
+
+**Administrator**
+- **Role:** System administration and data integrity specialist
+- **Goals:** Maintain system integrity and resolve data issues
+- **Technical Skill:** High
 
 ---
 
@@ -73,336 +129,368 @@
 ### Epic 1: Policy and Claims Reporting
 
 #### Story ID: US-001
-**Epic:** Policy and Claims Reporting  |  **Feature:** Policy and Claims Report Generation
-**User Story:** As a Business User, I want to generate a comprehensive report detailing all property and casualty policies and their associated claims, so that I can review coverage and claim history for operational oversight.
+**Epic:** Policy and Claims Reporting  |  **Feature:** Policy Claims Report Generation
+**User Story:** As a Business User, I want to generate comprehensive policy and claims reports, so that I can review coverage and claim history for operational oversight.
 **Acceptance Criteria:**
-- Given the Policy and Claim data files exist and are accessible
-- When I initiate the Policy and Claims Report generation process
-- Then the system generates a report with policy details (number, version, status, product type, policyholder name, coverage amount, deductible) and associated claim information (claim number, type, dates, estimated loss amount)
-- And the report includes proper headers, current date, and sequential page numbering
-- And policies without claims show "NO CLAIM FOUND FOR POLICY" in the notes field
-- And the report implements pagination with new headers after every 20 detail lines
+- Given I have access to the reporting system
+- When I initiate a Policy and Claims Report generation
+- Then the system generates a report with all policies and their associated claims
+- And the report includes policy number, version, status, product type, policyholder name, coverage amount, deductible
+- And the report includes claim number, claim type, date of loss, date reported, estimated loss amount
+- And the report includes proper headers, current date, and page numbering
+- And policies without claims show "NO CLAIM FOUND FOR POLICY" in notes
 **Story Points:** 8  |  **Priority:** Must Have
 
 #### Story ID: US-002
-**Epic:** Policy and Claims Reporting  |  **Feature:** Policy No Claims Report Generation
-**User Story:** As a Business Analyst, I want to generate a report that lists all policies and explicitly identifies those without any associated claims, so that I can investigate data accuracy and policy risk assessment.
+**Epic:** Policy and Claims Reporting  |  **Feature:** Claims Without Policy Identification
+**User Story:** As a Business Analyst, I want to identify policies without associated claims, so that I can investigate data accuracy and policy risk assessment.
 **Acceptance Criteria:**
-- Given the Policy Master File and Claim Master File are accessible
-- When I generate the Policy and Claims Report
-- Then the system displays all policies with their details
-- And for policies with associated claims, claim details are populated
-- And for policies without claims, the notes section clearly states "NO CLAIM FOUND FOR POLICY"
-- And the report includes formatted headers with title, current date, and page numbers
-- And the report handles empty policy files gracefully by showing headers only
-**Story Points:** 5  |  **Priority:** Must Have
+- Given I request a policy analysis report
+- When the system processes all policy records
+- Then the system identifies policies with no associated claims
+- And the report explicitly marks these policies with "NO CLAIM FOUND FOR POLICY"
+- And the report includes all policy details for review
+- And the report is formatted with proper pagination (20 lines per page)
+**Story Points:** 5  |  **Priority:** Should Have
 
 #### Story ID: US-003
-**Epic:** Policy and Claims Reporting  |  **Feature:** Claim Adjudication Report Generation
-**User Story:** As a Manager, I want to generate reports summarizing claim adjudication details including assigned adjusters and their claim assignments, so that I can monitor workload distribution and performance.
+**Epic:** Policy and Claims Reporting  |  **Feature:** Adjudication Reporting
+**User Story:** As a Claims Manager, I want to generate claim adjudication reports, so that I can monitor adjuster workload and claim assignments.
 **Acceptance Criteria:**
-- Given adjuster and claim assignment data exists
-- When I request a claim adjudication report
-- Then the system retrieves and displays adjuster details (ID, first name, last name, total claims assigned)
-- And displays comprehensive claim details (claim number, date of loss, financial status, coverage match status, coverage type, claim file status, estimated loss amount)
-- And the report includes proper formatting with headers and pagination
-- And missing assignment data is handled gracefully without stopping report generation
+- Given I need adjudication oversight information
+- When I generate an adjudication report
+- Then the system displays assigned adjusters with ID, first name, last name
+- And the system shows total number of claims assigned to each adjuster
+- And the system includes comprehensive claim details for each assignment
+- And the report includes claim financial status and coverage match status
 **Story Points:** 8  |  **Priority:** Should Have
 
-### Epic 2: Claim Initiation and Management
-
 #### Story ID: US-004
-**Epic:** Claim Initiation and Management  |  **Feature:** Claim Creation and Updates
-**User Story:** As a Claims Representative, I want to record initial loss details for a claim including core characteristics, so that I can start the First Notice of Loss (FNOL) process efficiently.
+**Epic:** Policy and Claims Reporting  |  **Feature:** Management Reporting
+**User Story:** As a Manager, I want to obtain comprehensive policy and claims reports with proper formatting, so that I can conduct auditing and operational analysis.
 **Acceptance Criteria:**
-- Given I am logged into the insurance system with a valid policy context
-- When I access the Loss Details screen
-- Then the system displays current date and my user ID automatically
-- And I can enter claim type, dates of loss and reporting, reported by/to, loss type, cause of loss, estimated amount, and loss description
-- And I can indicate whether a claim adjuster should be assigned
-- And upon successful validation, the system generates a unique claim number for new claims
-- And the system confirms successful creation or update of the claim record
-- And if adjuster assignment is requested, the system presents the next screen for assignment
-**Story Points:** 13  |  **Priority:** Must Have
+- Given I need management oversight reports
+- When I request a formatted policy and claims report
+- Then the system generates reports with clear titles and current system date
+- And the system applies proper pagination with headers on each page
+- And the system includes sequential page numbering starting from Page 1
+- And the system formats all data for readability with proper column alignment
+**Story Points:** 5  |  **Priority:** Should Have
+
+### Epic 2: Claim Data Management
 
 #### Story ID: US-005
-**Epic:** Claim Initiation and Management  |  **Feature:** Loss Details Entry and Modification
-**User Story:** As a Claims Representative, I want to update loss details for an existing claim, so that I can maintain accurate and current claim information.
+**Epic:** Claim Data Management  |  **Feature:** FNOL Data Entry
+**User Story:** As a Claims Representative, I want to enter First Notice of Loss claim details, so that I can initiate the claim processing workflow.
 **Acceptance Criteria:**
-- Given I have access to an existing claim record
-- When I access the Loss Details screen for that claim
-- Then the system pre-fills existing claim details including the claim number
-- And I can modify editable loss detail fields
-- And the system validates all input according to business rules
-- And upon successful validation, the system updates the corresponding claim record
-- And the system displays confirmation of successful update
-**Story Points:** 8  |  **Priority:** Must Have
+- Given I need to create a new FNOL claim
+- When I access the FNOL entry screen
+- Then I can enter claim number, claim type, line of business, cause of loss
+- And I can enter claim file status, date of loss, date reported
+- And I can enter reported by, reported to, last examined date, examined by
+- And I can enter loss description
+- And the system validates all mandatory fields before saving
+- And the system generates a unique claim number for new claims
+**Story Points:** 13  |  **Priority:** Must Have
 
 #### Story ID: US-006
-**Epic:** Claim Initiation and Management  |  **Feature:** Claim Status Tracking
-**User Story:** As an Underwriter, I want to view key loss details for a specific claim including dates of loss and reporting, so that I can assess the timeliness of claim filing and ensure policy compliance.
+**Epic:** Claim Data Management  |  **Feature:** Loss Details Management
+**User Story:** As a Claims Representative, I want to enter and update loss details for claims, so that I can maintain accurate claim information throughout the claim lifecycle.
 **Acceptance Criteria:**
-- Given I am logged into the system with access to Loss Summary function
-- When I enter a valid claim number
-- Then the system retrieves and displays detailed loss summary including claim number, type, line of business, cause of loss, file status, dates, reporting details, examination information, and loss description
-- And I can review the Date of Loss and Date Reported to evaluate claim timeliness
-- And I can update editable fields such as Last Examined Date, Loss Description, and Examination Completed status
-- And if I mark Examination Completed as "YES", the system navigates to the Claim Coverage Match screen
+- Given I have an existing claim
+- When I access the loss details screen
+- Then I can view current loss details including date of loss and estimated amount
+- And I can update loss details as new information becomes available
+- And the system validates that date of loss falls within policy effective dates
+- And the system validates that date reported is on or after date of loss
+- And the system saves updates with proper audit trail
 **Story Points:** 8  |  **Priority:** Must Have
+
+#### Story ID: US-007
+**Epic:** Claim Data Management  |  **Feature:** Property Information Management
+**User Story:** As a Data Entry Clerk, I want to enter and view claim property details, so that I can maintain accurate property information for claim processing.
+**Acceptance Criteria:**
+- Given I need to manage property information for a claim
+- When I access the property details screen
+- Then I can view property address details from the associated policy
+- And I can see country, address line 1, address line 2, zip code, city, state
+- And the property information is displayed as read-only from policy records
+- And I can associate the property details with specific claim lines
+**Story Points:** 5  |  **Priority:** Must Have
+
+#### Story ID: US-008
+**Epic:** Claim Data Management  |  **Feature:** Claim Party Management
+**User Story:** As a Claims Examiner, I want to record claim reporting parties information, so that I can maintain accurate records for audit and communication purposes.
+**Acceptance Criteria:**
+- Given I need to record parties involved in claim reporting
+- When I access the reporting parties screen
+- Then I can enter information about who reported the claim
+- And I can enter information about who received the claim report
+- And I can maintain contact information for all parties
+- And the system validates required party information
+**Story Points:** 8  |  **Priority:** Should Have
 
 ### Epic 3: Coverage Assessment and Matching
 
-#### Story ID: US-007
-**Epic:** Coverage Assessment and Matching  |  **Feature:** Coverage Type Selection
-**User Story:** As a Claims Adjuster, I want to view existing coverage information and update specific coverage details for a selected claim, so that I can accurately assess claim liability and ensure compliant claim processing.
-**Acceptance Criteria:**
-- Given I am logged into the system and have navigated to the Claim Coverage Details screen
-- When the system receives valid Policy Number and Claim Number
-- Then the system displays policy property address details and existing claim coverage details
-- And I can modify Coverage (P=Property Damage, B=Builders Risk) and Line Cause of Loss (P=Property Damage, D=Debris, C=Construction Defect, E=Escalator) fields
-- And upon successful validation and submission, the system updates the claim's Financial Status to "VERIFIED" and Coverage Match to "COVERED"
-- And the system displays confirmation message "Coverage match success [Claim Number]"
-- And control returns to the Loss Summary screen
-**Story Points:** 8  |  **Priority:** Must Have
-
-#### Story ID: US-008
-**Epic:** Coverage Assessment and Matching  |  **Feature:** Coverage Match Validation
-**User Story:** As a Claims Representative, I want to accurately categorize a property claim by selecting appropriate coverage type and line cause of loss, so that claims are correctly classified for proper processing and policy adherence.
-**Acceptance Criteria:**
-- Given I am on the Coverage Match screen with pre-populated claim details
-- When I enter Coverage type (P or B) and Line Cause of Loss (P, D, C, or E)
-- Then the system validates the entered values against business rules
-- And if validations are successful, the system updates the claim record with new Coverage Type and Line Cause of Loss
-- And the system automatically updates Financial Status to "VERIFIED" and Coverage Match to "COVERED"
-- And the system displays success message and returns to Loss Summary screen
-- And if validations fail, clear error messages are displayed for correction
-**Story Points:** 5  |  **Priority:** Must Have
-
 #### Story ID: US-009
-**Epic:** Coverage Assessment and Matching  |  **Feature:** Property Address Management
-**User Story:** As a Data Entry Clerk, I want to accurately record property location details from policy and associate relevant coverage details for a claim, so that comprehensive claim details enable proper processing and risk assessment.
+**Epic:** Coverage Assessment and Matching  |  **Feature:** Coverage Type Selection
+**User Story:** As a Claims Representative, I want to select appropriate coverage type and line cause of loss, so that I can ensure accurate claim categorization.
 **Acceptance Criteria:**
-- Given I have access to a claim with identified Policy Number and Version
-- When I access the Coverage Match screen
-- Then the system displays current date, user ID, and claim number
-- And the system retrieves and displays property address details from the policy record as read-only fields
-- And I can input or modify Coverage and Line Cause of Loss fields
-- And upon successful validation, the system updates the claim record and sets Financial Status to "VERIFIED" and Coverage Match to "COVERED"
-- And the system displays confirmation message and returns to Loss Summary screen
-**Story Points:** 5  |  **Priority:** Must Have
-
-### Epic 4: Loss Details Management
+- Given I need to categorize a property claim
+- When I access the coverage selection screen
+- Then I can select coverage type: 'P' for Property Damage or 'B' for Builders Risk
+- And I can select line cause of loss: 'P' for Property Damage, 'D' for Debris, 'C' for Construction Defect, 'E' for Escalator
+- And the system validates my selections against allowed values
+- And invalid selections show specific error messages
+- And successful selection updates claim financial status to 'VERIFIED'
+**Story Points:** 8  |  **Priority:** Must Have
 
 #### Story ID: US-010
-**Epic:** Loss Details Management  |  **Feature:** Loss Information Capture
-**User Story:** As a Claims Representative, I want to capture comprehensive loss information including dates, amounts, and descriptions, so that I can ensure complete documentation for claim processing.
+**Epic:** Coverage Assessment and Matching  |  **Feature:** Coverage Validation
+**User Story:** As a Claims Adjuster, I want to view and update claim coverage details, so that I can accurately assess claim liability and ensure compliant processing.
 **Acceptance Criteria:**
-- Given I am creating or updating a claim
-- When I enter loss details on the Loss Details screen
-- Then I can input Date of Loss (MM/DD/YYYY format, cannot be future date)
-- And I can input Date Reported (MM/DD/YYYY format, cannot be future date, must be on or after Date of Loss)
-- And I can enter Reported By (mandatory field)
-- And I can select Loss Type (T=Theft, F=Fire, E=Earthquake, H=Hail/Flood)
-- And I can select Cause of Loss (S=Sabotage, A=Accident, R=Arson, N=Natural)
-- And I can enter Estimated Loss Amount (numeric)
-- And I can provide Loss Description (mandatory first line, up to 3 lines total)
-**Story Points:** 8  |  **Priority:** Must Have
-
-#### Story ID: US-011
-**Epic:** Loss Details Management  |  **Feature:** Loss Description Management
-**User Story:** As an Underwriter, I want to update and review loss descriptions during claim examination, so that I can maintain accurate documentation and assessment records.
-**Acceptance Criteria:**
-- Given I am reviewing a claim on the Loss Summary screen
-- When I access the loss description fields
-- Then I can view existing loss description across up to three lines
-- And I can modify the loss description text
-- And the first line of loss description is mandatory and cannot be blank
-- And upon submission, the system validates and saves the updated description
-- And the updated description is reflected in the claim record
-**Story Points:** 3  |  **Priority:** Should Have
-
-### Epic 5: Claim Workflow and Status Management
-
-#### Story ID: US-012
-**Epic:** Claim Workflow and Status Management  |  **Feature:** Claim Examination Process
-**User Story:** As an Underwriter, I want to mark claim examination as complete and track examination progress, so that I can manage the claim review workflow effectively.
-**Acceptance Criteria:**
-- Given I am reviewing a claim on the Loss Summary screen
-- When I update the Last Examined Date and mark Examination Completed as "YES"
-- Then the system validates that the examined date is not in the future and not before the reported date
-- And the system validates that Examination Completed field is not blank and is either "YES" or "NO"
-- And if Examination Completed is "YES", the system automatically navigates to the Claim Coverage Match screen
-- And if Examination Completed is "NO", the system redisplays the Loss Summary screen with updated details
-- And the system saves all examination progress to the claim record
-**Story Points:** 5  |  **Priority:** Must Have
-
-#### Story ID: US-013
-**Epic:** Claim Workflow and Status Management  |  **Feature:** Adjuster Assignment
-**User Story:** As a Claims Representative, I want to indicate whether a claim adjuster should be assigned during claim creation, so that appropriate resources can be allocated for claim processing.
-**Acceptance Criteria:**
-- Given I am creating a new claim on the Loss Details screen
-- When I reach the Assign Claim Adjuster field
-- Then I can enter "Y", "N", or leave blank
-- And if I enter "Y", the system prepares for adjuster assignment workflow
-- And if I enter "N" or leave blank, the system proceeds without adjuster assignment
-- And the system validates the input and provides appropriate error messages for invalid entries
-- And the assignment preference is saved with the claim record
-**Story Points:** 3  |  **Priority:** Should Have
-
-#### Story ID: US-014
-**Epic:** Claim Workflow and Status Management  |  **Feature:** Status Progression
-**User Story:** As a Claims Processor, I want the system to automatically update claim financial status and coverage match status based on coverage validation, so that claim progression is tracked accurately.
-**Acceptance Criteria:**
-- Given I have successfully validated and submitted coverage details
-- When the system processes the coverage match
-- Then the claim's Financial Status is automatically updated to "VERIFIED"
-- And the claim's Coverage Match status is automatically updated to "COVERED"
-- And these status changes are immediately reflected in the claim record
-- And the status updates are visible on subsequent screen displays
-- And the system maintains an audit trail of status changes
-**Story Points:** 5  |  **Priority:** Must Have
-
-### Epic 6: Data Validation and Error Handling
-
-#### Story ID: US-015
-**Epic:** Data Validation and Error Handling  |  **Feature:** Input Data Validation
-**User Story:** As a Claims Processor, I want the system to validate my input data and provide clear error messages, so that I can correct invalid entries and maintain data integrity.
-**Acceptance Criteria:**
-- Given I am entering data on any claim-related screen
-- When I submit invalid data
-- Then the system validates Coverage field to ensure it is "P" or "B" only
-- And the system validates Line Cause of Loss to ensure it is "P", "D", "C", or "E" only
-- And the system validates date fields to ensure proper format and logical dates
-- And the system validates mandatory fields are not blank
-- And for each validation failure, the system displays specific, business-friendly error messages
-- And the system keeps me on the current screen to correct invalid input
-**Story Points:** 8  |  **Priority:** Must Have
-
-#### Story ID: US-016
-**Epic:** Data Validation and Error Handling  |  **Feature:** Business Rule Enforcement
-**User Story:** As a System Administrator, I want the system to enforce business rules consistently across all claim processing functions, so that data integrity and compliance are maintained.
-**Acceptance Criteria:**
-- Given any user is processing claim data
-- When business rules are applied
-- Then Date of Loss must fall within policy effective and expiration dates
-- And Date Reported cannot precede Date of Loss
-- And Policy Status code "A" is displayed as "ACTIVE", others as "INACTIVE"
-- And Claim Type defaults to "PROPERTY CLM" for property claims
-- And all mandatory fields must be populated before saving
-- And unique claim numbers are generated for new claims
-- And the system prevents processing when business rules are violated
+- Given I need to assess claim coverage
+- When I access the claim coverage details screen
+- Then I can view existing policy property address and claim coverage details
+- And I can modify coverage and line cause of loss fields
+- And the system validates coverage entries ('P' or 'B' only)
+- And the system validates line cause entries ('P', 'D', 'C', or 'E' only)
+- And successful updates change financial status to 'VERIFIED' and coverage match to 'COVERED'
 **Story Points:** 13  |  **Priority:** Must Have
 
-#### Story ID: US-017
-**Epic:** Data Validation and Error Handling  |  **Feature:** Error Message Display
-**User Story:** As a Claims Processor, I want to receive clear and specific error messages when I enter invalid data, so that I can quickly understand and correct my mistakes.
+#### Story ID: US-011
+**Epic:** Coverage Assessment and Matching  |  **Feature:** Coverage Match Processing
+**User Story:** As a Data Entry Clerk, I want to process coverage matching for claims, so that I can ensure proper coverage application and liability assessment.
 **Acceptance Criteria:**
-- Given I enter invalid data in any field
-- When the system validates my input
-- Then specific error messages are displayed for Coverage field: "ENTER P=Prop damage B=Builders Risk"
-- And specific error messages are displayed for Line Cause of Loss: "ENTER P=PR dam D=Debris C=Cons E=Esc"
-- And date validation errors provide clear guidance on acceptable formats and ranges
-- And mandatory field errors clearly indicate which fields require input
-- And error messages are displayed in a dedicated Warning/Errors area on the screen
-- And I remain on the current screen to make corrections
-**Story Points:** 5  |  **Priority:** Must Have
+- Given I have claim and policy information
+- When I process coverage matching
+- Then the system compares claim details against policy coverage
+- And the system updates coverage match status appropriately
+- And successful matches result in 'COVERED' status
+- And unsuccessful matches maintain 'NOT COVERED' status
+- And the system displays confirmation messages for successful matches
+**Story Points:** 13  |  **Priority:** Must Have
+
+#### Story ID: US-012
+**Epic:** Coverage Assessment and Matching  |  **Feature:** Liability Assessment
+**User Story:** As a Claims Adjuster, I want to assess claim liability based on coverage details, so that I can make accurate coverage determinations.
+**Acceptance Criteria:**
+- Given I have complete claim and coverage information
+- When I perform liability assessment
+- Then I can review all coverage terms and claim details
+- And I can determine if the claim is covered under the policy
+- And I can document my assessment reasoning
+- And the system updates claim status based on my determination
+**Story Points:** 8  |  **Priority:** Should Have
+
+### Epic 4: Claim Workflow Management
+
+#### Story ID: US-013
+**Epic:** Claim Workflow Management  |  **Feature:** Claim Status Management
+**User Story:** As a Claims Manager, I want to manage claim status throughout the lifecycle, so that I can ensure proper workflow progression.
+**Acceptance Criteria:**
+- Given I have claims in various stages
+- When I access claim status management
+- Then I can view current status of all claims (Open, Closed, Rejected)
+- And I can update claim status based on processing progress
+- And I can see financial status (Unverified, Verified)
+- And status changes are logged with timestamp and user information
+**Story Points:** 8  |  **Priority:** Must Have
+
+#### Story ID: US-014
+**Epic:** Claim Workflow Management  |  **Feature:** Assignment Management
+**User Story:** As a Claims Supervisor, I want to view and manage claim assignments, so that I can balance workload and ensure proper claim handling.
+**Acceptance Criteria:**
+- Given I need to manage claim assignments
+- When I access the assignment management screen
+- Then I can view all claims assigned to adjusters
+- And I can see adjuster workload and capacity
+- And I can reassign claims as needed
+- And I can track assignment history and changes
+**Story Points:** 13  |  **Priority:** Should Have
+
+#### Story ID: US-015
+**Epic:** Claim Workflow Management  |  **Feature:** Review Progress Tracking
+**User Story:** As a Claims Examiner, I want to update and track claim review progress, so that I can ensure proper workflow management and oversight.
+**Acceptance Criteria:**
+- Given I am reviewing claims
+- When I update review progress
+- Then I can mark review milestones as complete
+- And I can add notes about review findings
+- And I can set next review dates and requirements
+- And the system tracks review history and timeline
+**Story Points:** 8  |  **Priority:** Should Have
+
+#### Story ID: US-016
+**Epic:** Claim Workflow Management  |  **Feature:** Examination Completion
+**User Story:** As a Claims Manager, I want to mark claim examinations as complete, so that I can enable next steps in claim processing.
+**Acceptance Criteria:**
+- Given I have completed claim examinations
+- When I mark examinations as complete
+- Then the system validates all required examination steps are finished
+- And the system updates claim status to examination complete
+- And the system enables subsequent workflow steps
+- And completion is logged with timestamp and approver information
+**Story Points:** 5  |  **Priority:** Should Have
+
+### Epic 5: Data Validation and Error Handling
+
+#### Story ID: US-017
+**Epic:** Data Validation and Error Handling  |  **Feature:** Input Validation
+**User Story:** As a Claims Processor, I want comprehensive input validation, so that I can prevent data entry errors and maintain data quality.
+**Acceptance Criteria:**
+- Given I am entering claim data
+- When I input information in any field
+- Then the system validates data format and business rules
+- And date fields must be valid dates in MM/DD/YYYY format
+- And date fields cannot be future dates
+- And coverage codes must match allowed values
+- And cause of loss codes must match allowed values
+- And validation occurs in real-time during data entry
+**Story Points:** 13  |  **Priority:** Must Have
 
 #### Story ID: US-018
-**Epic:** Data Validation and Error Handling  |  **Feature:** System Error Handling
-**User Story:** As a Claims Processor, I want the system to handle technical errors gracefully and provide meaningful feedback, so that I understand when system issues prevent normal processing.
+**Epic:** Data Validation and Error Handling  |  **Feature:** Error Message Display
+**User Story:** As a Claims Processor, I want clear and specific error messages, so that I can quickly correct input errors without losing other data.
 **Acceptance Criteria:**
-- Given a technical system error occurs during processing
-- When file access errors, database connection issues, or system communication problems arise
-- Then the system displays appropriate error messages indicating the nature of the problem
-- And the system prevents data corruption by not saving incomplete transactions
-- And for file not found errors, the system indicates which specific file is unavailable
-- And for claim or policy not found scenarios, the system provides clear "not found" messages
-- And the system logs technical errors for administrative review
-- And users are provided with guidance on next steps (retry, contact support, etc.)
+- Given I have made an input error
+- When the system detects invalid data
+- Then the system displays specific error messages for each field
+- And error messages indicate what values are acceptable
+- And error messages appear in a designated warning/error area
+- And I can correct errors without losing other entered data
+- And the system highlights the specific fields with errors
+**Story Points:** 8  |  **Priority:** Must Have
+
+#### Story ID: US-019
+**Epic:** Data Validation and Error Handling  |  **Feature:** Warning Systems
+**User Story:** As a Claims Processor, I want to receive warnings for potential data issues, so that I can address problems before they impact claim processing.
+**Acceptance Criteria:**
+- Given I am processing claims
+- When the system detects potential issues
+- Then the system displays appropriate warnings
+- And warnings appear for coverage match issues
+- And warnings appear for missing or incomplete data
+- And warnings provide guidance on resolution steps
+- And I can acknowledge warnings and proceed or correct issues
 **Story Points:** 8  |  **Priority:** Should Have
+
+#### Story ID: US-020
+**Epic:** Data Validation and Error Handling  |  **Feature:** Data Quality Assurance
+**User Story:** As an Administrator, I want to ensure data quality across the system, so that I can maintain system integrity and prevent processing errors.
+**Acceptance Criteria:**
+- Given I need to maintain data quality
+- When I access data quality tools
+- Then I can identify and investigate data inconsistencies
+- And I can resolve missing assignment data issues
+- And I can validate data relationships between policies and claims
+- And I can generate data quality reports
+- And I can implement corrective actions for data issues
+**Story Points:** 13  |  **Priority:** Should Have
+
+#### Story ID: US-021
+**Epic:** Data Validation and Error Handling  |  **Feature:** Acceptable Values Display
+**User Story:** As a Claims Adjuster, I want to see acceptable values for claim fields, so that I can enter data correctly and reduce errors.
+**Acceptance Criteria:**
+- Given I am entering claim data
+- When I access input fields with restricted values
+- Then the system displays or provides access to acceptable values
+- And I can see valid codes for coverage types
+- And I can see valid codes for cause of loss
+- And I can see valid codes for claim types and statuses
+- And the system provides descriptions for each code
+**Story Points:** 5  |  **Priority:** Should Have
 
 ---
 
 ## Sprint Backlog Suggestion
 
-### Sprint 1 (Foundation Sprint)
-**Focus:** Core claim creation and basic reporting
-- US-004: Claim Creation and Updates (13 pts)
-- US-001: Policy and Claims Report Generation (8 pts)
-- US-015: Input Data Validation (8 pts)
-**Total:** 29 points
+### Sprint 1 (Foundation) - 34 Story Points
+**Focus:** Core claim data entry and basic validation
+- US-005: FNOL Data Entry (13 pts) - Must Have
+- US-006: Loss Details Management (8 pts) - Must Have
+- US-017: Input Validation (13 pts) - Must Have
 
-### Sprint 2 (Coverage Management Sprint)
+### Sprint 2 (Coverage Processing) - 34 Story Points
 **Focus:** Coverage assessment and matching functionality
-- US-007: Coverage Type Selection (8 pts)
-- US-008: Coverage Match Validation (5 pts)
-- US-009: Property Address Management (5 pts)
-- US-014: Status Progression (5 pts)
-- US-017: Error Message Display (5 pts)
-**Total:** 28 points
+- US-009: Coverage Type Selection (8 pts) - Must Have
+- US-010: Coverage Validation (13 pts) - Must Have
+- US-011: Coverage Match Processing (13 pts) - Must Have
 
-### Sprint 3 (Workflow and Examination Sprint)
-**Focus:** Claim examination and workflow management
-- US-006: Claim Status Tracking (8 pts)
-- US-012: Claim Examination Process (5 pts)
-- US-005: Loss Details Entry and Modification (8 pts)
-- US-010: Loss Information Capture (8 pts)
-**Total:** 29 points
+### Sprint 3 (Error Handling) - 26 Story Points
+**Focus:** Error handling and user guidance
+- US-018: Error Message Display (8 pts) - Must Have
+- US-007: Property Information Management (5 pts) - Must Have
+- US-013: Claim Status Management (8 pts) - Must Have
+- US-021: Acceptable Values Display (5 pts) - Should Have
 
-### Sprint 4 (Reporting and Enhancement Sprint)
-**Focus:** Advanced reporting and system enhancements
-- US-002: Policy No Claims Report Generation (5 pts)
-- US-003: Claim Adjudication Report Generation (8 pts)
-- US-016: Business Rule Enforcement (13 pts)
-**Total:** 26 points
+### Sprint 4 (Reporting Foundation) - 26 Story Points
+**Focus:** Basic reporting capabilities
+- US-001: Policy Claims Report Generation (8 pts) - Must Have
+- US-019: Warning Systems (8 pts) - Should Have
+- US-012: Liability Assessment (8 pts) - Should Have
+- US-016: Examination Completion (5 pts) - Should Have
 
-### Sprint 5 (Polish and Integration Sprint)
-**Focus:** Final features and system integration
-- US-011: Loss Description Management (3 pts)
-- US-013: Adjuster Assignment (3 pts)
-- US-018: System Error Handling (8 pts)
-**Total:** 14 points
+### Sprint 5 (Advanced Reporting) - 26 Story Points
+**Focus:** Advanced reporting and analysis
+- US-002: Claims Without Policy Identification (5 pts) - Should Have
+- US-003: Adjudication Reporting (8 pts) - Should Have
+- US-008: Claim Party Management (8 pts) - Should Have
+- US-004: Management Reporting (5 pts) - Should Have
+
+### Sprint 6 (Workflow Management) - 29 Story Points
+**Focus:** Workflow and assignment management
+- US-014: Assignment Management (13 pts) - Should Have
+- US-015: Review Progress Tracking (8 pts) - Should Have
+- US-020: Data Quality Assurance (13 pts) - Should Have
 
 ---
 
 ## Story Dependency Map
 
-### Critical Path Dependencies
-1. **US-004** (Claim Creation) → **US-005** (Loss Details Modification)
-2. **US-004** (Claim Creation) → **US-006** (Claim Status Tracking)
-3. **US-006** (Claim Status Tracking) → **US-012** (Claim Examination Process)
-4. **US-012** (Claim Examination Process) → **US-007** (Coverage Type Selection)
-5. **US-007** (Coverage Type Selection) → **US-014** (Status Progression)
+### Critical Path Dependencies:
+1. **US-017 (Input Validation)** → **US-005 (FNOL Data Entry)** → **US-006 (Loss Details Management)**
+2. **US-018 (Error Message Display)** → **US-009 (Coverage Type Selection)** → **US-010 (Coverage Validation)**
+3. **US-010 (Coverage Validation)** → **US-011 (Coverage Match Processing)** → **US-012 (Liability Assessment)**
+4. **US-013 (Claim Status Management)** → **US-015 (Review Progress Tracking)** → **US-016 (Examination Completion)**
 
-### Supporting Dependencies
-- **US-015** (Input Data Validation) supports all data entry stories
-- **US-016** (Business Rule Enforcement) supports all claim processing stories
-- **US-017** (Error Message Display) supports all user interaction stories
+### Supporting Dependencies:
+- **US-007 (Property Information Management)** supports **US-009, US-010, US-011**
+- **US-021 (Acceptable Values Display)** supports **US-009, US-010, US-017**
+- **US-019 (Warning Systems)** supports **US-010, US-011, US-018**
+- **US-005, US-006** support **US-001, US-002, US-003** (reporting stories)
 
-### Reporting Dependencies
-- **US-001**, **US-002**, **US-003** can be developed in parallel as they are independent reporting features
-
-### Independent Features
-- **US-011** (Loss Description Management)
-- **US-013** (Adjuster Assignment)
-- **US-018** (System Error Handling)
+### Independent Stories:
+- **US-004 (Management Reporting)**
+- **US-008 (Claim Party Management)**
+- **US-014 (Assignment Management)**
+- **US-020 (Data Quality Assurance)**
 
 ---
 
-## Definition of Ready
-- User story follows the standard format (As a... I want... So that...)
-- Acceptance criteria are clearly defined using Given/When/Then format
-- Story points are estimated using Fibonacci sequence
-- MoSCoW priority is assigned
-- Dependencies are identified and documented
-- Business rules and validation requirements are specified
+## Definition of Ready (DoR)
+A user story is ready for development when:
+- Acceptance criteria are clearly defined and testable
+- Business rules and validation requirements are documented
+- UI/UX requirements are specified
+- Dependencies are identified and resolved
+- Story is estimated and prioritized
+- Technical approach is understood by the team
 
-## Definition of Done
+## Definition of Done (DoD)
+A user story is complete when:
 - All acceptance criteria are met and tested
-- Code is reviewed and approved
 - Unit tests are written and passing
 - Integration tests are completed
-- User acceptance testing is completed
+- Code review is completed and approved
+- User acceptance testing is passed
 - Documentation is updated
-- No critical defects remain
-- Product Owner approval is obtained
+- No critical or high-priority defects remain
+- Product Owner has approved the implementation
+
+---
+
+*Document Version: 1.0*  
+*Created: Based on BRD.md CI-27.0*  
+*Total Stories: 21*  
+*Total Story Points: 175*
