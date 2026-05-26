@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # SSP Inbound Client API
+  ssp-inbound-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ssp-inbound-client-prod
+    ports:
+      - "8080:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=${SQL_CONNECTION_STRING}
+      - ConnectionStrings__Redis=${REDIS_CONNECTION_STRING}
+      - ApplicationInsights__ConnectionString=${APPLICATION_INSIGHTS_CONNECTION_STRING}
+      - AzureAd__TenantId=${AZURE_AD_TENANT_ID}
+      - AzureAd__ClientId=${AZURE_AD_CLIENT_ID}
+      - AzureStorage__ConnectionString=${AZURE_STORAGE_CONNECTION_STRING}
+      - ServiceBus__ConnectionString=${SERVICE_BUS_CONNECTION_STRING}
+    networks:
+      - ssp-network
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  ssp-network:
+    driver: bridge
