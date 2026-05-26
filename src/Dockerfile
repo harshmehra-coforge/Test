@@ -1,40 +1,43 @@
-FROM openjdk:21-jre-slim
+# Use the official .NET 8 runtime as base image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
 
-LABEL maintainer="FNOL Team"
-LABEL version="1.0.0"
-LABEL description="Base Docker image for FNOL microservices"
+# Use the official .NET 8 SDK for building
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
 
-# Create app directory
+# Copy project file and restore dependencies
+COPY ["src/SSPInboundClient/SSPInboundClient.csproj", "src/SSPInboundClient/"]
+RUN dotnet restore "src/SSPInboundClient/SSPInboundClient.csproj"
+
+# Copy source code and build
+COPY . .
+WORKDIR "/src/src/SSPInboundClient"
+RUN dotnet build "SSPInboundClient.csproj" -c Release -o /app/build
+
+# Publish the application
+FROM build AS publish
+RUN dotnet publish "SSPInboundClient.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# Final stage - create runtime image
+FROM base AS final
 WORKDIR /app
 
-# Create non-root user
-RUN groupadd -r fnol && useradd -r -g fnol fnol
+# Create non-root user for security
+RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
+USER appuser
 
-# Install required packages
-RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy application jar
-ARG JAR_FILE
-COPY ${JAR_FILE} app.jar
-
-# Change ownership to non-root user
-RUN chown -R fnol:fnol /app
-
-# Switch to non-root user
-USER fnol
+# Copy published application
+COPY --from=publish /app/publish .
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8080/actuator/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:80/health || exit 1
 
-# Expose port
-EXPOSE 8080
+# Set environment variables
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://+:80
 
-# JVM options for containerized environment
-ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication"
-
-# Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["dotnet", "SSPInboundClient.dll"]
