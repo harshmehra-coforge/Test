@@ -1,253 +1,110 @@
 version: '3.8'
 
 services:
-  # Infrastructure Services
-  mysql:
-    image: mysql:9.4.0
-    container_name: fnol-mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: fnol_db
-      MYSQL_USER: fnol_user
-      MYSQL_PASSWORD: fnol_password
+  # SSP Inbound Client API
+  ssp-inbound-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ssp-inbound-client
     ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - "8080:80"
+      - "8443:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=SSPInboundClientDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true;
+      - ConnectionStrings__Redis=redis:6379
+      - ApplicationInsights__ConnectionString=InstrumentationKey=your-instrumentation-key
+    depends_on:
+      - sqlserver
+      - redis
     networks:
-      - fnol-network
+      - ssp-network
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: ssp-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - ssp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -Q 'SELECT 1'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Redis Cache
   redis:
-    image: redis:8.2.1-alpine
-    container_name: fnol-redis
+    image: redis:7-alpine
+    container_name: ssp-redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - fnol-network
+      - ssp-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass "YourRedisPassword"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  rabbitmq:
-    image: rabbitmq:3.13.0-management
-    container_name: fnol-rabbitmq
+  # Redis Commander (Redis Management UI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: ssp-redis-commander
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      - REDIS_HOSTS=local:redis:6379:0:YourRedisPassword
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - ssp-network
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: ssp-nginx
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    networks:
-      - fnol-network
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Service Discovery
-  eureka-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        JAR_FILE: eureka-server/target/eureka-server-1.0.0.jar
-    container_name: fnol-eureka-server
-    ports:
-      - "8761:8761"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-    networks:
-      - fnol-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  # Configuration Server
-  config-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        JAR_FILE: config-server/target/config-server-1.0.0.jar
-    container_name: fnol-config-server
-    ports:
-      - "8888:8888"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
     depends_on:
-      eureka-server:
-        condition: service_healthy
+      - ssp-inbound-client
     networks:
-      - fnol-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  # API Gateway
-  api-gateway:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        JAR_FILE: api-gateway/target/api-gateway-1.0.0.jar
-    container_name: fnol-api-gateway
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
-      CONFIG_SERVER_URL: http://config-server:8888
-      REDIS_HOST: redis
-      JWT_SECRET: fnol-secret-key-docker-environment
-    depends_on:
-      eureka-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - fnol-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  # User Service
-  user-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        JAR_FILE: user-service/target/user-service-1.0.0.jar
-    container_name: fnol-user-service
-    ports:
-      - "8081:8080"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
-      CONFIG_SERVER_URL: http://config-server:8888
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_DATABASE: fnol_db
-      MYSQL_USERNAME: fnol_user
-      MYSQL_PASSWORD: fnol_password
-      REDIS_HOST: redis
-      JWT_SECRET: fnol-secret-key-docker-environment
-    depends_on:
-      eureka-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - fnol-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  # Policy Service
-  policy-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        JAR_FILE: policy-service/target/policy-service-1.0.0.jar
-    container_name: fnol-policy-service
-    ports:
-      - "8082:8080"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
-      CONFIG_SERVER_URL: http://config-server:8888
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_DATABASE: fnol_db
-      MYSQL_USERNAME: fnol_user
-      MYSQL_PASSWORD: fnol_password
-      REDIS_HOST: redis
-      RABBITMQ_HOST: rabbitmq
-    depends_on:
-      eureka-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - fnol-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  # Monitoring
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: fnol-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-    networks:
-      - fnol-network
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: fnol-grafana
-    ports:
-      - "3000:3000"
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./docker/grafana/provisioning:/etc/grafana/provisioning
-    networks:
-      - fnol-network
-
-networks:
-  fnol-network:
-    driver: bridge
+      - ssp-network
+    restart: unless-stopped
 
 volumes:
-  mysql_data:
+  sqlserver_data:
+    driver: local
   redis_data:
-  rabbitmq_data:
-  prometheus_data:
-  grafana_data:
+    driver: local
+
+networks:
+  ssp-network:
+    driver: bridge
