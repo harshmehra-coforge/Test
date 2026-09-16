@@ -1,252 +1,248 @@
-# Business Requirements Document (BRD)
+# Business Requirements Document
 
-## 1. Document Control
+## Missed Dose Logging & Adherence Alerts — CarePath Plus
 
-| Item | Value |
-|---|---|
-| Document title | Large Deal Approval Enhancement |
-| Version | 1.0 |
-| Status | Draft for stakeholder review |
-| Source | Meeting Notes — Large Deal Approval Enhancement |
-| Source date | 22 June 2026 |
-| Prepared by | Rajesh Menon, BSA |
-| Target delivery date stated in source | 25 June 2026 |
+**Document date:** 2026-09-16  
+**Source discovery meeting:** 22 July 2026  
+**Business sponsor:** Aditi Kapoor, Clinical Adherence Lead  
+**Status:** Draft generated from discovery meeting notes  
+**Target sign-off:** 29 July 2026  
+**Target UAT:** 19 August 2026  
+**Target go-live:** End of Q3 FY26, aligned with the Benefit Summary widget release train
 
-## 2. Executive Summary
+## 1. Executive Summary
 
-The current Salesforce Opportunity approval process routes approval only to Deal Desk and is triggered by discount percentage. It does not use the existing `Total_Contract_Value__c` field as an approval trigger. Consequently, Opportunities with high TCV but discount at or below the Deal Desk threshold can close without Finance review.
+CarePath Plus currently records patient-reported missed doses as unstructured Case timeline notes received through calls, WhatsApp, and email. The absence of structured dose records prevents timely adherence monitoring and requires analysts to manually extract data for monthly reporting. This creates reporting delays and can postpone clinical intervention by three to four weeks.
 
-The business requires a Finance approval track for Opportunities with TCV greater than $500,000. The Finance track must run in parallel with the existing Deal Desk approval process. Within Finance, Opportunities from $500,000 through $2,000,000 must route to Anita Rao, Finance Director, and Opportunities above $2,000,000 must route to Ravi Krishnan, CFO. When both approval triggers apply, both approvals are required before full sign-off.
+Phase 1 will introduce a quick-entry missed-dose logger on the Salesforce Health Cloud Care Plan record page. Care managers and assigned pharmacists will be able to capture a missed dose in under 15 seconds. The solution will calculate rolling 30-, 60-, and 90-day adherence, evaluate defined clinical thresholds, and create prioritized Case Tasks for care-team follow-up while controlling duplicate alert volume. Each dose-log insertion will be audited for PHI access, and validation will prevent entries dated more than 14 days in the past.
 
-The enhancement also requires rejection and resubmission behavior, email and Finance Teams channel notifications, and reporting for Finance and Sales Ops. Renewal treatment remains subject to the proposed rule documented in this BRD and stakeholder confirmation.
+## 2. Business Objectives
 
-## 3. Business Problem and Opportunity
+1. Replace free-text missed-dose capture with structured `Dose_Log__c` records.
+2. Enable care managers and assigned pharmacists to record a missed dose during a patient interaction without leaving the Care Plan or Case work surface.
+3. Provide on-demand 30-, 60-, and 90-day rolling adherence calculations for an individual patient.
+4. Detect defined adherence deterioration and consecutive missed-dose patterns promptly through prioritized Tasks.
+5. Reduce alert noise through severity prioritization and duplicate prevention.
+6. Establish an auditable PHI access trail for every dose-log insertion.
+7. Improve the timeliness and reliability of adherence reporting by eliminating manual Case-note extraction as the primary structured-data source.
 
-### 3.1 Current problem
+## 3. Stakeholders
 
-- Three deals above $750,000 TCV closed without Finance seeing them during FY26 Q1.
-- Two of those deals included non-standard revenue recognition terms, requiring approximately two weeks of FP&A cleanup.
-- The current approval process has no deal-size trigger.
-- A $2 million TCV Opportunity with an 8% discount can be auto-approved because the existing Deal Desk trigger is discount-based.
-- `Total_Contract_Value__c` is populated on the Opportunity through CPQ but is not currently used by approval automation.
-
-### 3.2 Business opportunity
-
-A TCV-based Finance approval control will provide Finance visibility and approval rights over large deals before close, reduce the likelihood of post-close revenue-recognition remediation, and create a consistent audit trail for large-deal decisions.
-
-## 4. Business Objectives and Success Measures
-
-| Objective ID | Business objective | Success measure |
+| Stakeholder | Role / interest | Decision or input ownership |
 |---|---|---|
-| OBJ-01 | Ensure Finance reviews large Opportunities before they close. | Every in-scope Opportunity with TCV greater than $500,000 is routed through the Finance approval track before full approval. |
-| OBJ-02 | Preserve the existing Deal Desk control while adding Finance control. | The existing Deal Desk approval continues to operate independently on its existing `Discount > 10%` trigger. |
-| OBJ-03 | Reduce avoidable approval-cycle delay caused by sequential routing. | When both tracks are triggered, they operate concurrently; total approval duration is governed by the slower active track rather than the sum of both tracks. |
-| OBJ-04 | Improve transparency of Finance approval activity and outcomes. | Finance and Sales Ops can report on Finance queue volume, approval time by Finance sub-tier, and rejection reasons. |
-| OBJ-05 | Provide an accessible notification trail for Finance reviewers. | Finance approval events generate email notifications and posts in the Finance shared Teams channel `#finance-approvals`. |
+| Aditi Kapoor | Clinical Adherence Lead; business sponsor | Phase 1 scope, governance sign-off, cross-workstream alignment |
+| Rajesh Menon | Salesforce BSA | BRD, field-level mapping, widget mockups |
+| Dr. Kunal Bhatt | Clinical Pharmacist; clinical SME | Adherence rules, threshold interpretation, Reason values, clinical review ownership |
+| Priti Deshmukh | Senior Care Manager; end-user representative | Workflow usability, entry-speed and accessibility feedback, UAT participation |
+| Karan Verma | Salesforce Technical Lead | Existing object/schema confirmation, PHI audit-write pattern, technical feasibility |
+| Care managers | Operational users | Missed-dose entry and Task follow-up |
+| Assigned pharmacists | Operational users | Missed-dose entry and clinical workflow participation |
+| CarePath Plus Steering Committee | Governance body | Phase 1 sign-off through governance process |
 
-The source notes do not provide a numeric target for reduction in approval time, reduction in post-close cleanup, or approval SLA compliance. These measures require stakeholder definition during review.
+## 4. Current State / Problem Statement
 
-## 5. Scope
+- Patients report missed doses through inbound calls, WhatsApp, or follow-up email.
+- Care managers record the information as free-text notes on the Case timeline.
+- There is no structured missed-dose field capture or adherence rollup.
+- Three analysts manually scrape Case notes into a spreadsheet for monthly reviews.
+- The Q2 FY26 program report was delayed by 11 days when two analysts were unavailable.
+- Clinical teams may learn of deteriorating adherence only at a monthly review, commonly three to four weeks after the first missed dose.
+- Several therapies lose efficacy after two consecutive missed doses; the autoimmune biologic protocol requires re-titration when three or more doses are missed in a 30-day window. These clinical impacts are the rationale for earlier detection; the meeting did not specify additional automated clinical actions beyond Task creation.
 
-### 5.1 In scope
+## 5. Future State Overview
 
-- Salesforce Opportunity approval-process enhancement.
-- TCV-based Finance approval trigger using `Total_Contract_Value__c`.
-- Finance internal routing by TCV.
-- Parallel operation of Finance and existing Deal Desk approval tracks.
-- Combined rejection feedback and clean-slate resubmission behavior.
-- Finance email and Teams channel-post notifications.
-- Finance and Sales Ops reporting views based on Salesforce approval history and a custom report.
-- Definition of renewal handling for high-TCV renewals, subject to the open decision in Section 12.
+1. A care manager or assigned pharmacist opens `doseLogQuickEntry` from the Care Plan Lightning Record Page.
+2. The component presents the active Care Plan medication automatically and defaults dose date/time to the current time.
+3. The user selects a curated reason, optionally enters notes, and saves the entry without navigating away from the record page.
+4. The Apex service validates the entry, inserts `Dose_Log__c`, and writes the required `PHI_Access_Log__c` audit record.
+5. The widget calculates the patient's 30-, 60-, and 90-day rolling adherence on render.
+6. An after-insert Flow evaluates alert thresholds, checks existing open Tasks, and creates or updates the appropriate Task outcome.
+7. A scheduled Flow runs daily at 6:30 AM IST for patients with at least one `Dose_Log__c` entry in the previous 45 days to identify deterioration not caused by a new log entry.
+8. Entries remain editable by their creator for 24 hours; after that they are read-only for normal users. Supervisor override is deferred from Phase 1, with manual administrator DML accepted for now.
 
-### 5.2 Out of scope
+## 6. Scope
 
-The source notes do not identify additional scope. The following are not defined as requirements by the source and must not be assumed: changes to discount thresholds, changes to CPQ calculation or population of `Total_Contract_Value__c`, changes to revenue-recognition policy, changes to approval authority outside the named approvers, or changes to Teams channel governance.
+### 6.1 In Scope
 
-## 6. Stakeholders and Roles
+- Custom Salesforce LWC named `doseLogQuickEntry` on the Care Plan Lightning Record Page.
+- Missed-dose entry by care managers and assigned pharmacists.
+- Dose date/time capture with current-time default and back-dating up to 14 days.
+- Automatic medication population from the active Care Plan.
+- Curated missed-dose Reason values.
+- Optional free-text Notes with a 500-character maximum.
+- Structured `Dose_Log__c` creation through an Apex service class.
+- Server-side validation, including the 14-day back-date limit.
+- On-demand 30-, 60-, and 90-day rolling adherence calculation for an individual patient.
+- After-insert Flow threshold evaluation and Task creation.
+- Daily scheduled adherence re-evaluation at 6:30 AM IST for the defined recent-log population.
+- Task de-duplication and highest-severity selection.
+- `PHI_Access_Log__c` audit write on every `Dose_Log__c` insert.
+- Usability requirements for single-click launch, tab order, and no navigation away from the Case/record work surface.
+- Phase 1 field-level mapping and widget states identified in the action items.
 
-| Stakeholder / role | Interest or responsibility |
-|---|---|
-| Priya Sharma, VP Sales Ops | Sales Operations sponsor; requires visibility in the Sales Ops dashboard. |
-| Anita Rao, Finance Director | Finance approver for TCV from $500,000 through $2,000,000; business owner for Finance review control. |
-| Ravi Krishnan, CFO | Proposed Finance approver for TCV above $2,000,000; alignment remains to be confirmed. |
-| Vikram Patel, Deal Desk | Existing Deal Desk approval process owner/user. |
-| Kavita Bansal, FP&A Lead | Reporting stakeholder; to provide specific dashboard fields. |
-| Karan, Salesforce Administrator | Salesforce configuration and Teams connector feasibility confirmation. |
-| Sales representative / rep | Submits or resubmits Opportunities and receives approval outcomes and comments. |
-| Finance approval team | Receives Finance notifications and visibility through the shared Teams channel. |
+### 6.2 Out of Scope
 
-## 7. Current-State Process
+- Patient-facing SMS reminders or outreach.
+- Patient portal integration.
+- Pharmacy dispense reconciliation, which belongs to the Medication Refill workstream.
+- Hospitalization-driven adherence pause logic.
+- Supervisor override workflow for edits after 24 hours; manual administrator DML is accepted for Phase 1.
+- Batch recalculation across the entire active patient population.
+- Cross-widget adherence signals with the Financial Assistance and Refill workstreams.
+- Any clinical intervention beyond the specified Salesforce Task creation and assignment.
 
-1. An Opportunity approval is routed only to Deal Desk.
-2. The existing Deal Desk trigger is `Discount > 10%`.
-3. There is no current TCV trigger in the approval automation.
-4. `Total_Contract_Value__c` is populated by CPQ but is not used by approval automation.
-5. An Opportunity below or at the Deal Desk discount trigger can proceed without Finance review, even when its TCV is high.
+## 7. Functional Requirements
 
-## 8. Future-State Business Process
+### 7.1 Missed-Dose Entry
 
-1. The Salesforce approval process evaluates the Opportunity's TCV and discount conditions.
-2. If TCV is greater than $500,000, the Finance track is initiated.
-3. Finance routes the Opportunity internally according to TCV:
-   - $500,000 through $2,000,000: Anita Rao, Finance Director.
-   - Above $2,000,000: Ravi Krishnan, CFO.
-4. Independently, if discount is greater than 10%, the existing Deal Desk track is initiated.
-5. When both conditions are met, Finance and Deal Desk approvals run in parallel.
-6. Full approval requires every track triggered for that Opportunity to approve.
-7. If either active approver rejects, the Opportunity returns to the rep with comments from the tracks that have started.
-8. On resubmission, both approval tracks restart from step 1 and prior-cycle approvals do not carry over.
-9. Finance approval activity is communicated by email and posted to `#finance-approvals`.
-10. Approval history and reporting data support Finance and Sales Ops monitoring.
-
-## 9. Functional Requirements
-
-### 9.1 Approval trigger and routing
-
-| ID | Requirement | Source / rationale |
+| ID | Requirement | Traceability |
 |---|---|---|
-| BR-01 | The system shall evaluate `Total_Contract_Value__c` on each Opportunity subject to the approval process. | Meeting notes: existing field is populated by CPQ but unused by automation. |
-| BR-02 | The system shall initiate the Finance approval track when `Total_Contract_Value__c > $500,000`, regardless of the Opportunity discount percentage. | Confirmed decision; explicitly includes 0% discount. |
-| BR-03 | The system shall route Finance approval for Opportunities with TCV from $500,000 through $2,000,000 to Anita Rao, Finance Director. | Confirmed decision. |
-| BR-04 | The system shall route Finance approval for Opportunities with TCV above $2,000,000 to Ravi Krishnan, CFO. | Confirmed decision; CFO alignment remains an open dependency. |
-| BR-05 | The system shall preserve the existing Deal Desk approval trigger of `Discount > 10%` independently of the Finance TCV trigger. | Confirmed decision. |
-| BR-06 | The system shall allow the Finance approval track and Deal Desk approval track to initiate and operate in parallel when both triggers are met. | Confirmed decision. |
-| BR-07 | The system shall require approval from every triggered track before recording the Opportunity as fully approved. | Confirmed decision: both approvals are needed when both triggers fire. |
-| BR-08 | The system shall not initiate the Finance track solely because an Opportunity has a discount greater than 10% when its TCV is $500,000 or less, unless another approved business rule applies. | Derived directly from the independent trigger definitions; requires validation if exceptions exist. |
+| BR-01 | The solution shall provide a custom LWC named `doseLogQuickEntry` on the Care Plan Lightning Record Page. | Decisions; Proposed missed dose logger |
+| BR-02 | The LWC shall allow a care manager or the patient's assigned pharmacist to open the missed-dose entry surface with a single click. | Proposed missed dose logger; UX discussion |
+| BR-03 | The LWC shall capture dose date and time and shall default the value to the current date and time. | Proposed missed dose logger |
+| BR-04 | The LWC shall allow a user to back-date a dose entry by no more than 14 days. | Proposed missed dose logger; Compliance and audit |
+| BR-05 | The service shall reject any dose entry dated more than 14 days in the past, and this rule shall be enforced server-side in addition to the LWC validation. | Compliance and audit |
+| BR-06 | The solution shall automatically populate the medication from the active Care Plan and shall not require manual medication selection from a picklist. | Proposed missed dose logger |
+| BR-07 | The LWC shall provide the following curated Reason values: `Forgot`, `Side effects`, `Cost / access`, `Feeling better`, `Travel`, `Hospitalization`, and `Other`. | Proposed missed dose logger |
+| BR-08 | The LWC shall provide an optional free-text Notes field with a maximum length of 500 characters. | Proposed missed dose logger |
+| BR-09 | On save, the solution shall create a structured `Dose_Log__c` record through the Apex service class. | Current state; Decisions |
+| BR-10 | The entry surface shall support completion in under 15 seconds during a normal care-manager or pharmacist interaction, shall open with a single click, shall support tab order, and shall not require navigation away from the record work surface. | Proposed missed dose logger; UX discussion |
 
-### 9.2 Rejection and resubmission
+### 7.2 Adherence Calculation
 
-| ID | Requirement | Source / rationale |
+| ID | Requirement | Traceability |
 |---|---|---|
-| BR-09 | If any active approver rejects the Opportunity, the system shall return the Opportunity to the rep for action. | Confirmed decision. |
-| BR-10 | Upon rejection, the system shall return combined comments from both approval tracks that have started. | Confirmed decision. |
-| BR-11 | When the rep resubmits a rejected Opportunity, the system shall restart all applicable approval tracks from step 1 and run them in parallel where both are applicable. | Confirmed decision. |
-| BR-12 | The system shall not carry approvals from a prior approval cycle into a subsequent resubmission cycle. | Confirmed decision: clean slate on resubmit. |
-| BR-13 | The system shall re-evaluate the applicable Finance and Deal Desk trigger conditions on resubmission. | Required to ensure the clean-slate cycle reflects the current Opportunity values; confirm during stakeholder review. |
+| BR-11 | The Apex service class shall calculate adherence on demand for a single patient when the widget renders. | Adherence calculation; Decisions |
+| BR-12 | The solution shall provide rolling 30-day, 60-day, and 90-day adherence values. | Adherence calculation |
+| BR-13 | The solution shall calculate adherence as `(scheduled doses − missed doses) / scheduled doses × 100`. | Adherence calculation |
+| BR-14 | Scheduled doses shall be derived from the Care Plan's existing `Dose_Schedule__c`; missed doses shall be derived from `Dose_Log__c` records. | Adherence calculation |
+| BR-15 | The solution shall not perform batch recalculation across the entire active patient population as part of widget rendering or post-log processing. | Adherence calculation; Decisions |
 
-### 9.3 Notifications
+### 7.3 Alerting and Task Management
 
-| ID | Requirement | Source / rationale |
+| ID | Requirement | Traceability |
 |---|---|---|
-| BR-14 | The system shall send email notifications for Finance approval activity to the applicable Finance approver(s). | Confirmed decision; standard email is acceptable. |
-| BR-15 | The system shall post Finance approval notifications in the shared Microsoft Teams channel `#finance-approvals`. | Confirmed decision; channel post, not direct message. |
-| BR-16 | The notification process shall use a shared channel post so the Finance team can see the pipeline, rather than a one-to-one Teams direct message. | Confirmed decision. |
-| BR-17 | The system shall notify the relevant participants when the Finance track is rejected and when the Opportunity is resubmitted. | Implied by rejection/resubmission process; notification events and recipients require confirmation. |
+| BR-16 | An after-insert record-triggered Flow on `Dose_Log__c` shall evaluate adherence alert thresholds after a missed-dose record is inserted. | Decisions |
+| BR-17 | When rolling 30-day adherence drops below 80%, the solution shall create an adherence Task on the Case assigned to the primary care manager with Normal priority. | Alert thresholds |
+| BR-18 | When three or more consecutive missed doses occur in a seven-day window, the solution shall create an adherence Task assigned to the primary care manager with High priority. | Alert thresholds |
+| BR-19 | When rolling 30-day adherence drops below 60%, the solution shall create a High-priority Task assigned to Dr. Kunal Bhatt for clinical review and a copy Task assigned to the primary care manager. | Alert thresholds |
+| BR-20 | If more than one threshold is breached for the same patient, the solution shall create no more than one adherence Task per patient in a 24-hour period, and the highest-severity threshold shall determine the resulting Task handling. | De-duplication rules |
+| BR-21 | If an open, not-closed Task already exists for the same patient and threshold type, the solution shall not create a duplicate and shall post a comment to the existing Task instead. | De-duplication rules |
+| BR-22 | The Flow shall use existing open-Task retrieval and conditional decision logic to implement de-duplication; an Apex trigger is not required for the alerting layer. | Technical discussion |
+| BR-23 | A scheduled Flow shall run daily at 6:30 AM IST and re-evaluate rolling 30-day adherence for patients with at least one `Dose_Log__c` entry in the preceding 45 days. | Decisions |
+| BR-24 | The scheduled evaluation shall support detection of adherence deterioration that has not been triggered by a new dose-log entry, including patients who have stopped logging. | Decisions |
 
-### 9.4 Reporting and audit visibility
+### 7.4 Compliance, Audit, and Editing
 
-| ID | Requirement | Source / rationale |
+| ID | Requirement | Traceability |
 |---|---|---|
-| BR-18 | The solution shall provide a Finance-side monthly dashboard or report showing Opportunities in the Finance approval queue. | Kavita's reporting ask. |
-| BR-19 | The solution shall show Finance approval time by Finance sub-tier: Finance Director and CFO. | Kavita's reporting ask. |
-| BR-20 | The solution shall show rejection reasons for Finance approval cycles. | Kavita's reporting ask. |
-| BR-21 | The solution shall provide the same Finance approval view on the Sales Ops dashboard. | Priya's reporting ask. |
-| BR-22 | Reporting shall use standard Salesforce approval history and a custom report where those sources provide the required data. | Karan's stated approach. |
-| BR-23 | The system shall retain an auditable record of the Finance and Deal Desk approval outcomes for each approval cycle. | Business need for control and traceability; confirm retention requirements. |
+| BR-25 | Every `Dose_Log__c` insertion shall write to the existing `PHI_Access_Log__c` audit trail. | Compliance and audit |
+| BR-26 | Each dose-log audit record shall include user ID, patient ID, timestamp, and action value `DOSE_LOG_ENTRY`. | Compliance and audit |
+| BR-27 | A care manager shall be able to edit their own dose-log entries within 24 hours of creation. | Compliance and audit |
+| BR-28 | After 24 hours, dose-log entries shall be read-only for normal users. | Compliance and audit |
+| BR-29 | Supervisor override editing shall not be implemented in Phase 1; manual DML by administrators is the accepted interim process. | Compliance and audit; Decisions |
+| BR-30 | The solution shall retain the curated Reason field rather than introducing unrestricted free text for the reason, to reduce the risk of PHI leakage into an unaudited field. | Compliance and audit |
 
-### 9.5 Renewal handling
+## 8. Non-Functional Requirements
 
-| ID | Requirement | Source / rationale |
+| ID | Requirement | Traceability / source |
 |---|---|---|
-| BR-24 | The solution shall apply an explicitly approved Finance handling rule to high-TCV renewals. | Open item: renewal treatment must be resolved during BRD phase. |
-| BR-25 | The proposed business rule is that a standard-priced renewal with 0% additional discount versus the prior term may be auto-approved for the Finance track; all other high-TCV renewals shall require Finance approval. | Proposal requested in meeting notes; not yet confirmed as a final decision. |
-| BR-26 | The renewal auto-approval rule shall not bypass the existing Deal Desk approval when its `Discount > 10%` trigger is met. | Consistency with independent Deal Desk trigger; requires stakeholder confirmation. |
+| NFR-01 | The entry interaction shall be usable from the Care Plan record page without navigation away from the active Case/record work surface. | Meeting UX discussion |
+| NFR-02 | The entry interaction shall support keyboard tab order. | Meeting UX discussion |
+| NFR-03 | The normal entry workflow shall be designed to complete in under 15 seconds. | Meeting UX discussion |
+| NFR-04 | The server-side service shall enforce the 14-day date restriction independently of client-side validation. | Compliance and audit |
+| NFR-05 | Each dose-log insertion shall create the specified PHI audit record with the required identity, patient, time, and action data. | Compliance and audit |
+| NFR-06 | The Notes field shall enforce a 500-character maximum. | Proposed missed dose logger |
+| NFR-07 | The solution shall avoid full-population batch recalculation during on-demand widget rendering and post-log evaluation. | Performance concern |
+| NFR-08 | The scheduled adherence evaluation shall execute at 6:30 AM IST daily. | Decisions |
+| NFR-09 | Notes shall be included in the quarterly PHI scrub review process. | Compliance and audit |
+| NFR-10 | The implementation shall reuse the established `PHI_Access_Log__c` write pattern where confirmed by the Technical Lead. | Action item; existing control pattern |
 
-## 10. Non-Functional Requirements
+Performance, availability, detailed security access model, retention duration, and recovery objectives were not provided in the meeting notes and require confirmation before final approval.
 
-| ID | Requirement | Source / rationale |
+## 9. Data and Field Requirements
+
+| Data element | Source / object | Business requirement |
 |---|---|---|
-| NFR-01 | The approval solution shall provide an auditable record of approval decisions, approvers, comments, and approval cycles in Salesforce. | Approval control and reporting need. |
-| NFR-02 | The approval solution shall support concurrent processing of the Finance and Deal Desk tracks without requiring one track to complete before the other begins. | Confirmed parallel-processing decision. |
-| NFR-03 | Finance notifications shall be available through both email and the shared Microsoft Teams channel `#finance-approvals`. | Confirmed notification decision. |
-| NFR-04 | Reports and dashboards shall distinguish Finance Director and CFO approval sub-tiers. | Reporting requirement. |
-| NFR-05 | The solution shall use the existing Salesforce approval history and custom reporting capability where feasible. | Confirmed proposed reporting approach. |
-| NFR-06 | Response-time, availability, data-retention, access-control, and notification-delivery targets shall be defined before final approval of this BRD. | Information not provided in source notes. |
+| Dose date and time | `Dose_Log__c` | Defaults to now; back-date limited to 14 days |
+| Medication | Active Care Plan | Auto-populated; no manual picklist entry |
+| Reason | `Dose_Log__c` | Curated values defined in BR-07 |
+| Notes | `Dose_Log__c` | Optional; maximum 500 characters; quarterly PHI scrub |
+| Scheduled doses | `Dose_Schedule__c` on Care Plan | Used as the scheduled-dose input to adherence calculation |
+| Missed doses | `Dose_Log__c` | Used as the missed-dose input to adherence calculation |
+| Audit user | `PHI_Access_Log__c` | User ID required for each insertion |
+| Audit patient | `PHI_Access_Log__c` | Patient ID required for each insertion |
+| Audit timestamp | `PHI_Access_Log__c` | Timestamp required for each insertion |
+| Audit action | `PHI_Access_Log__c` | Must be `DOSE_LOG_ENTRY` |
 
-## 11. Business Rules and Boundary Conditions
+The meeting notes require confirmation of the existing `Dose_Log__c` object and `Dose_Schedule__c` schema, including which existing fields can be reused and which additions are needed.
 
-| Rule ID | Rule |
-|---|---|
-| RULE-01 | Finance trigger condition: `TCV > $500,000`. An Opportunity at exactly $500,000 does not meet the stated Finance trigger. |
-| RULE-02 | Finance approval routing: $500,000 < TCV ≤ $2,000,000 routes to Anita Rao; TCV > $2,000,000 routes to Ravi Krishnan. |
-| RULE-03 | Deal Desk trigger remains `Discount > 10%`. |
-| RULE-04 | Finance and Deal Desk operate independently and in parallel when both triggers are true. |
-| RULE-05 | All triggered approval tracks must approve for full sign-off. |
-| RULE-06 | Any rejection returns the Opportunity to the rep. |
-| RULE-07 | Resubmission starts a new approval cycle; prior-cycle approvals do not carry forward. |
-| RULE-08 | Finance notifications use email and a shared Teams channel post, not a Teams direct message. |
-| RULE-09 | Renewal auto-approval is proposed, not finalized, until stakeholders confirm the standard-pricing definition and comparison method. |
+## 10. Assumptions
 
-## 12. Assumptions and Open Decisions
+1. Salesforce Health Cloud and Care Plans are available for the CarePath Plus program.
+2. The active Care Plan contains a usable `Dose_Schedule__c` representation of scheduled doses.
+3. A Case, primary care manager, assigned pharmacist, and patient relationship can be identified for the applicable Care Plan.
+4. Salesforce Tasks support assignment, priority, open/closed status, and comments for the required workflow.
+5. The existing `PHI_Access_Log__c` object and its write mechanism are available for reuse.
+6. The existing Benefit Summary widget release train remains the target deployment alignment.
+7. Normal users can be restricted from editing dose-log entries after 24 hours using Salesforce security or service-layer controls; exact mechanism is not specified.
+8. The phrase “same threshold type” can be represented consistently for duplicate detection across Tasks.
 
-### 12.1 Assumptions
+## 11. Dependencies
 
-- `Total_Contract_Value__c` is the authoritative TCV value for this approval decision because it is the existing CPQ-populated Opportunity field.
-- Salesforce is the system of record for Opportunity approval status and approval history.
-- The existing Deal Desk approval process can remain operational while the Finance track is added.
-- The Finance Teams channel is named exactly `#finance-approvals` and is available to the intended Finance audience.
-- “Full sign-off” means all approval tracks triggered for the Opportunity have approved.
-
-### 12.2 Open decisions and information required
-
-| ID | Open item | Owner / source |
+| Dependency | Description | Owner / source |
 |---|---|---|
-| OD-01 | Confirm Ravi Krishnan's alignment to the above-$2M Finance approver assignment. | Anita Rao |
-| OD-02 | Confirm that the Microsoft Teams connector supports a channel post from the Salesforce approval process. | Karan, Salesforce Administrator |
-| OD-03 | Provide the specific fields required on the Finance dashboard. | Kavita Bansal; stated due date 24 June 2026 |
-| OD-04 | Confirm whether standard-priced high-TCV renewals are auto-approved and define “standard pricing” and “0% additional discount versus prior term.” | Anita Rao / stakeholders |
-| OD-05 | Confirm whether renewals are included in the Finance trigger without exception, or whether the proposed auto-approval exception applies. | Business stakeholders |
-| OD-06 | Define recipients and content for rejection and resubmission notifications. | Finance, Sales Ops, Deal Desk |
-| OD-07 | Define approval-time measurement start/end points and any target reporting period or SLA. | Finance and Sales Ops |
-| OD-08 | Define access permissions for Finance and Sales Ops dashboards and approval history. | System and business owners |
-| OD-09 | Define data-retention requirements for approval records and comments. | Finance / governance stakeholders |
+| Care Plan data model | Active medication and `Dose_Schedule__c` must be available and correctly related to the patient. | Salesforce Technical Lead / CarePath Plus org |
+| `Dose_Log__c` schema | Existing object and fields must be confirmed; additions may be required. | Karan Verma; due 24 July 2026 |
+| PHI audit pattern | Existing helper class or Platform Event write pattern must be identified and reused where applicable. | Karan Verma; due 24 July 2026 |
+| Reason taxonomy | Clinical team must finalize whether “Adverse event” is distinct or handled by the existing Adverse Event Quick Logger. | Dr. Kunal Bhatt; due 25 July 2026 |
+| UAT participants | Six care managers, three per hub, must be nominated. | Priti Deshmukh; week of 4 August 2026 |
+| Governance alignment | Financial Assistance and Refill owners must confirm Phase 1 excludes cross-widget signals. | Aditi Kapoor |
+| Steering Committee approval | Phase 1 sign-off is expected through the 28 July governance meeting. | CarePath Plus Steering Committee |
+| Salesforce release train | Go-live depends on alignment with the Benefit Summary widget release train. | CarePath Plus PMO |
 
-## 13. Dependencies
+## 12. Risks
 
-| ID | Dependency |
-|---|---|
-| DEP-01 | CPQ must continue to populate `Total_Contract_Value__c` accurately before approval evaluation. |
-| DEP-02 | Salesforce approval automation must support the two independent tracks and parallel execution. |
-| DEP-03 | Named approver identities and delegation/backup arrangements must be available in Salesforce. Delegation rules are not provided. |
-| DEP-04 | Microsoft Teams integration must support posting to `#finance-approvals`. |
-| DEP-05 | Salesforce approval history and custom report capabilities must expose the data needed for the requested dashboards. |
-| DEP-06 | Stakeholders must provide the dashboard field list and resolve renewal treatment before final requirements approval. |
+| Risk | Impact | Likelihood | Mitigation |
+|---|---|---:|---|
+| Existing `Dose_Log__c` or `Dose_Schedule__c` schema does not support the required fields or relationships. | High | Medium | Complete schema confirmation and field mapping before sign-off. |
+| PHI audit-write pattern is not reusable as expected. | High | Medium | Confirm helper class or Platform Event pattern and validate audit behavior early. |
+| Entry workflow exceeds 15 seconds or is difficult to use during calls. | High | Medium | Validate default, populated, back-date, and error states with six UAT users. |
+| Duplicate prevention fails, creating alert fatigue. | High | Medium | Test same-day multi-threshold breaches and existing open Tasks with Flow decision paths. |
+| Scheduled dose data is incomplete or inaccurate. | High | Medium | Validate Care Plan dose schedules with the clinical and technical SMEs before adherence calculations are approved. |
+| Curated Reason taxonomy is not finalized by the target date. | Medium | Medium | Resolve the “Adverse event” decision with the clinical team before UAT configuration is fixed. |
+| Notes field contains PHI despite audit controls. | Medium | Medium | Retain quarterly PHI scrub review and maintain the curated Reason field. |
+| Manual administrator DML for post-24-hour corrections creates operational inconsistency. | Medium | Medium | Document the Phase 1 administrative process and capture supervisor override as a future scope candidate. |
+| Release-train or governance timing shifts. | High | Medium | Track 29 July sign-off, 19 August UAT, 28 July governance, and end-Q3 release dependencies. |
 
-## 14. Risks and Mitigations
+## 13. Open Questions
 
-| ID | Risk | Potential impact | Mitigation / response |
-|---|---|---|---|
-| RISK-01 | Incorrect or missing TCV values in `Total_Contract_Value__c`. | Large deals may bypass or incorrectly enter Finance approval. | Validate field population and define exception handling before activation. |
-| RISK-02 | CFO assignment above $2M is not confirmed. | Approval routing may be rejected or become operationally blocked. | Obtain Anita's confirmation of Ravi's alignment before final sign-off. |
-| RISK-03 | Teams connector cannot post from the approval process. | Finance channel visibility requirement may not be met. | Complete connector feasibility assessment and agree an approved alternative only if stakeholders authorize it. |
-| RISK-04 | Finance receives approximately 12–15 approvals per month at the $500K threshold, with risk of review becoming perfunctory as volume changes. | Reduced quality of Finance review. | Monitor queue volume and review outcomes through the Finance dashboard; reassess threshold only through formal change control. |
-| RISK-05 | Parallel tracks can produce different outcomes. | Rep may receive Deal Desk approval and Finance rejection, or the reverse, causing rework. | Require all triggered tracks to approve and return combined comments on rejection. |
-| RISK-06 | Renewal auto-approval is insufficiently defined. | Eligible renewals may be incorrectly bypassed or unnecessarily routed. | Keep the rule proposed until pricing comparison and renewal criteria are explicitly approved. |
-| RISK-07 | Reporting fields or permissions are incomplete. | Finance and Sales Ops may lack required visibility. | Obtain field list, define access, and validate report coverage before release. |
+1. What are the current fields and relationships on `Dose_Log__c` and `Dose_Schedule__c`, and which additions are required?
+2. Is the existing `PHI_Access_Log__c` write pattern implemented through a helper class or Platform Event, and what standard must the Apex service use?
+3. Should `Adverse event` be a distinct Reason value, or must it be captured through the existing Adverse Event Quick Logger?
+4. What Salesforce security and service-layer controls will enforce editability by the creator within 24 hours and read-only status thereafter?
+5. How should the solution behave when scheduled doses are zero, missing, or invalid for a rolling window? Information not provided.
+6. What exact Task comment content is required when a duplicate open Task is found? Information not provided.
+7. What are the required performance targets for widget rendering, Apex calculation, Flow completion, and scheduled processing? Information not provided.
+8. What availability, data-retention, access-control, and recovery requirements apply? Information not provided.
+9. Does the assigned pharmacist need any permissions or Task-routing behavior beyond entering a dose log? Information not provided.
+10. What reporting outputs or dashboards, if any, are required after structured capture is introduced? Information not provided.
 
-## 15. Traceability Matrix
+## 14. References
 
-| Business objective | Supporting requirements |
-|---|---|
-| OBJ-01 | BR-01, BR-02, BR-03, BR-04, BR-07, BR-24 |
-| OBJ-02 | BR-05, BR-08, BR-26 |
-| OBJ-03 | BR-06, BR-07, BR-11, NFR-02 |
-| OBJ-04 | BR-18, BR-19, BR-20, BR-21, BR-22, BR-23, NFR-04, NFR-05 |
-| OBJ-05 | BR-14, BR-15, BR-16, BR-17, NFR-03 |
+1. `Meeting_Note_03_Missed_Dose_Adherence.md` — Formal discovery meeting minutes, 22 July 2026.
+2. CarePath Plus Patient Self-Enrollment TDD — referenced in meeting notes for established PHI controls; document content was not provided.
+3. CarePath Plus Benefit Summary widget — referenced for release-train alignment; detailed artifact was not provided.
+4. Salesforce Health Cloud Care Plan, `Dose_Schedule__c`, `Dose_Log__c`, and `PHI_Access_Log__c` — system entities referenced by the meeting notes; current schema details require confirmation.
 
-## 16. References
+## 15. Requirement Traceability Summary
 
-1. `Meeting_Note_02_High_Value_Deal.md`, “Meeting Notes — Large Deal Approval Enhancement,” 22 June 2026.
-2. Salesforce Opportunity field: `Total_Contract_Value__c` — identified in the source notes as CPQ-populated and currently unused by approval automation.
-3. Existing Deal Desk approval rule: `Discount > 10%` — identified in the source notes.
-
-## 17. Approval and Sign-off
-
-| Role | Name | Status |
+| Requirement group | IDs | Business outcome |
 |---|---|---|
-| Business sponsor, Sales Ops | Priya Sharma | Information not provided |
-| Finance owner | Anita Rao | Information not provided |
-| Finance executive approver | Ravi Krishnan | Alignment pending per OD-01 |
-| Deal Desk representative | Vikram Patel | Information not provided |
-| FP&A reporting stakeholder | Kavita Bansal | Information not provided |
-| Salesforce administrator | Karan | Information not provided |
+| Quick entry and structured capture | BR-01–BR-10 | Faster, consistent missed-dose capture |
+| Adherence calculation | BR-11–BR-15 | Timely patient-level adherence visibility |
+| Alerts and Tasks | BR-16–BR-24 | Earlier clinical and care-manager follow-up with controlled volume |
+| Audit and editing | BR-25–BR-30 | PHI accountability and controlled record correction |
+| Non-functional controls | NFR-01–NFR-10 | Usability, validation, auditability, and processing constraints |
+
+**Key requirement IDs:** BR-01–BR-30; NFR-01–NFR-10.
