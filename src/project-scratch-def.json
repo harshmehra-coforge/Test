@@ -1,0 +1,9 @@
+{
+  "orgName": "Strategic Approval Scaffold",
+  "edition": "Enterprise",
+  "features": ["EnableSetPasswordInApi"],
+  "settings": {
+    "lightningExperienceSettings": {"enableS1DesktopEnabled": true},
+    "emailAdministrationSettings": {"emailSecurityCompliance": true}
+  }
+}
