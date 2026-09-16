@@ -1,0 +1,6 @@
+{
+  "orgName": "Strategic Approval Development",
+  "edition": "Enterprise",
+  "features": ["AuthorApex"],
+  "settings": {"lightningExperienceSettings": {"enableS1DesktopEnabled": true}}
+}
