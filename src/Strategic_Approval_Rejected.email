@@ -1,0 +1,4 @@
+Subject: Strategic approval rejected: {!Opportunity.Name}
+
+The approval was rejected. Review the comments in Salesforce and resubmit explicitly.
+<!-- TODO: Bind rejection comments and template metadata. -->
