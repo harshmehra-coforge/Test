@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types><members>*</members><name>ApexClass</name></types>
+    <types><members>Account.Strategic_Account__c</members><members>Opportunity.TCV__c</members><members>Opportunity.Approval_Submission_Version__c</members><members>Opportunity.Approval_Routing_Snapshot__c</members><members>Opportunity.CRO_Approval_Required__c</members><members>Opportunity.Deal_Desk_Approval_Required__c</members><members>Opportunity.CRO_Approval_Start__c</members><members>Opportunity.CRO_Approval_Due__c</members><members>Opportunity.CRO_Escalated__c</members><members>Opportunity.CRO_Approver__c</members><members>Opportunity.CRO_Delegated_From__c</members><members>Opportunity.Approval_Last_Decision__c</members><members>Opportunity.Approval_Last_Comment__c</members><name>CustomField</name></types>
+    <types><members>Strategic_Approval_Execution_Log__c</members><name>CustomObject</name></types>
+    <types><members>Strategic_Approval_Config.Default</members><name>CustomMetadata</name></types>
+    <types><members>Strategic_Approval_Admin</members><name>PermissionSet</name></types>
+    <version>66.0</version>
+</Package>
