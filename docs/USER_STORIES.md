@@ -1,257 +1,468 @@
-# Kanban Test Cases
+# Large Deal Approval Enhancement — Product Backlog
+
+> Grounded in `BRD (4).md`, version 1.0. Assumptions: Salesforce remains the system of record; `Total_Contract_Value__c` is authoritative; renewal exceptions remain disabled until explicitly approved; unresolved BRD open decisions are tracked as dependencies rather than invented behavior.
 
-These Jira stories represent the supplied Care Plan medication-dose logging and adherence test cases. Each story preserves the test-case ID, traceability, scenario, and expected result.
+## Backlog Structure
 
-## Stories
+### EPIC 1 — Finance Approval Triggering and Parallel Routing
+- **F1.1** Evaluate TCV and route Finance approval by threshold
+  - US-001 Evaluate TCV-based Finance trigger
+  - US-002 Route mid-tier Finance approvals to Finance Director
+  - US-003 Route high-tier Finance approvals to CFO
+- **F1.2** Preserve Deal Desk control and coordinate approval tracks
+  - US-004 Preserve independent Deal Desk trigger
+  - US-005 Run triggered approval tracks in parallel and require full sign-off
 
-### TC-01 — Authorized Care Plan component load
-**Traceability:** BR-01, BR-02, BR-06, BR-09, BR-26–27
+### EPIC 2 — Approval Outcomes and Resubmission
+- **F2.1** Handle rejection feedback
+  - US-006 Return rejected Opportunity with combined comments
+- **F2.2** Restart approval on resubmission
+  - US-007 Re-evaluate triggers and start a clean approval cycle
 
-**Scenario:** Load component for an authorized user on an active Care Plan.
+### EPIC 3 — Notifications, Reporting and Auditability
+- **F3.1** Notify Finance approval participants
+  - US-008 Notify Finance approvers by email
+  - US-009 Post Finance events to the shared Teams channel
+  - US-010 Notify relevant participants on rejection and resubmission
+- **F3.2** Provide Finance and Sales Ops visibility
+  - US-011 Provide Finance approval queue and tier-time reporting
+  - US-012 Provide rejection-reason reporting and Sales Ops view
+- **F3.3** Retain approval audit history
+  - US-013 Maintain auditable approval-cycle records
 
-**Expected result:** Component renders on the Care Plan surface; medication is server-sourced; 30/60/90-day summaries are available; no navigation is required.
+---
 
-### TC-02 — Keyboard-only form navigation
-**Traceability:** BR-03–04, NFR-02
+# EPIC 1 — Finance Approval Triggering and Parallel Routing
 
-**Scenario:** Open form by one click and navigate using keyboard only.
+## Feature F1.1 — Evaluate TCV and route Finance approval by threshold
 
-**Expected result:** Form opens in one activation, focus is usable, tab order is logical, and no keyboard trap exists.
+### US-001 — Evaluate the Finance approval trigger from TCV
+**Developer persona:** BE
 
-### TC-03 — Entry defaults and curated clinical controls
-**Traceability:** BR-06–11, BRULE-05, BRULE-08, BRULE-24
+**User story**  
+As a Salesforce approval automation, I want to evaluate `Total_Contract_Value__c` for each Opportunity entering approval, so that every Opportunity above the Finance threshold receives Finance review regardless of discount.
 
-**Scenario:** Verify default timestamp, server-derived medication, required reason, curated reason options, and no arbitrary medication.
+**Business Value**  
+Prevents high-value Opportunities from closing without Finance visibility, including deals with 0% or otherwise low discount.
 
-**Expected result:** Defaults and curated controls are correct; medication cannot be freely substituted. Final clinical reason list must be approved.
+**Scenarios / Acceptance Criteria**
+- **Given** an Opportunity has TCV greater than $500,000, **when** the approval process evaluates it, **then** the Finance approval track is initiated regardless of discount percentage.
+- **Given** an Opportunity has TCV exactly $500,000, **when** the approval process evaluates it, **then** the Finance track is not initiated by the stated TCV rule.
+- **Given** an Opportunity has TCV below $500,000, **when** the approval process evaluates it, **then** the Finance track is not initiated by the stated TCV rule.
+- **Given** TCV is missing or cannot be evaluated, **when** the approval process is submitted, **then** the system must not silently treat the value as an eligible or ineligible value; it must follow an agreed exception/error path and record the outcome. *(Dependency: TCV exception handling is not defined in the BRD.)*
 
-### TC-04 — Valid current-time dose entry and audit
-**Traceability:** BR-06, BR-11, BR-14–18, BRULE-14
+**Definition of Ready (DoR)**
+- TCV field API name, data type, currency handling, and CPQ population behavior are confirmed.
+- Exact behavior for missing/invalid TCV is approved.
+- Entry point and submission permissions are identified.
 
-**Scenario:** Submit a valid current-time entry with reason and blank Notes.
+**Definition of Done (DoD)**
+- Trigger logic is configured and peer-reviewed.
+- Boundary and error cases are automated-tested.
+- Salesforce test evidence confirms the trigger is independent of discount.
+- Deployment and rollback steps are documented.
 
-**Expected result:** One `Dose_Log__c` is persisted with server-derived relationships and one `PHI_Access_Log__c` event containing user, patient, timestamp, and `DOSE_LOG_ENTRY`.
+**Dependencies**  
+DEP-01, DEP-02; RISK-01.
 
-### TC-05 — Accept exact 14-day lower boundary
-**Traceability:** BR-08, BR-12, BRULE-06–07
+---
 
-**Scenario:** Submit exactly at the permitted 14-day lower boundary through UI and Apex.
+### US-002 — Route mid-tier Finance approvals to Anita Rao
+**Developer persona:** BE
 
-**Expected result:** Boundary is accepted and audited. Confirm whether boundary means calendar days or exact 14×24 hours.
+**User story**  
+As Finance, I want Opportunities above $500,000 and up to $2,000,000 to route to Anita Rao, so that the Finance Director reviews the defined mid-tier deals.
 
-### TC-06 — Reject timestamp beyond 14-day lower boundary
-**Traceability:** BR-12, BR-16, NFR-03, BRULE-07
+**Business Value**  
+Creates consistent approval ownership for the primary large-deal range.
 
-**Scenario:** Submit one minute beyond the permitted lower boundary through UI and direct Apex.
+**Scenarios / Acceptance Criteria**
+- **Given** TCV is greater than $500,000 and less than or equal to $2,000,000, **when** Finance routing occurs, **then** the approval is assigned to Anita Rao, Finance Director.
+- **Given** TCV is exactly $2,000,000, **when** Finance routing occurs, **then** the approval is assigned to Anita Rao.
+- **Given** TCV is exactly $500,000, **when** Finance routing occurs, **then** this Finance track is not created by the stated trigger and no Anita assignment is made by this rule.
+- **Given** the approver identity is unavailable or inactive, **when** routing occurs, **then** the system must surface a routing error and prevent an unassigned approval from being presented as successfully routed. *(Dependency: approver identity/delegation policy.)*
 
-**Expected result:** Both layers reject with controlled validation; no Dose Log or audit event is created.
+**Definition of Ready (DoR)**
+- Anita Rao’s active Salesforce user, role, and delegation/backup arrangement are confirmed.
+- Currency and threshold comparison rules are approved.
+- Test data for both boundaries is available.
 
-### TC-07 — Reject future timestamp
-**Traceability:** TSD §§6.2, 8
+**Definition of Done (DoD)**
+- Routing is configured to Anita for the complete mid-tier range.
+- Boundary, inactive-user, and unauthorized-routing tests pass.
+- Approval assignment is visible in Salesforce history.
 
-**Scenario:** Submit a future timestamp.
+**Dependencies**  
+DEP-02, DEP-03; OD-08.
 
-**Expected result:** UI and Apex reject it; no DML occurs. Confirm this TSD rule as an approved business rule.
+---
 
-### TC-08 — Validate reason and Notes length
-**Traceability:** BR-10–11, BR-24, NFR-07
+### US-003 — Route high-tier Finance approvals to Ravi Krishnan
+**Developer persona:** BE
 
-**Scenario:** Test blank/invalid reason, 500-character Notes, and 501-character Notes.
+**User story**  
+As Finance leadership, I want Opportunities above $2,000,000 to route to Ravi Krishnan, so that CFO-level review is applied to the highest-value deals.
 
-**Expected result:** Invalid reason and 501 chars are rejected; exactly 500 chars is accepted.
+**Business Value**  
+Ensures the approval authority matches the financial exposure of the Opportunity.
 
-### TC-09 — Preserve form data after create-service failure
-**Traceability:** BR-12; TSD §6.2
+**Scenarios / Acceptance Criteria**
+- **Given** TCV is greater than $2,000,000, **when** Finance routing occurs, **then** the approval is assigned to Ravi Krishnan, CFO.
+- **Given** TCV is exactly $2,000,000, **when** Finance routing occurs, **then** the approval is assigned to Anita Rao rather than Ravi Krishnan.
+- **Given** Ravi’s assignment is not approved or his Salesforce identity is unavailable, **when** a high-tier Opportunity is submitted, **then** the system must not route it to an unconfirmed or inactive approver; release is blocked pending OD-01 resolution.
 
-**Scenario:** Force create-service failure after entering valid data.
+**Definition of Ready (DoR)**
+- OD-01 is resolved and Ravi’s assignment is approved.
+- Ravi’s active user, role, delegation, and access are configured.
+- High-tier boundary test data is available.
 
-**Expected result:** Non-PHI error is shown and entered values remain in the form.
+**Definition of Done (DoD)**
+- Above-$2M routing is configured and peer-reviewed.
+- Exact-$2M and above-$2M tests pass.
+- Assignment and outcome appear in auditable Salesforce history.
 
-### TC-10 — Handle missing active medication or schedule
-**Traceability:** BR-09, BR-18, BR-28; TSD §6.1
+**Dependencies**  
+DEP-02, DEP-03, OD-01, OD-08.
 
-**Scenario:** Load Care Plans without active medication or schedule.
+---
 
-**Expected result:** Configuration error is shown and invalid logging is blocked.
+## Feature F1.2 — Preserve Deal Desk control and coordinate approval tracks
 
-### TC-11 — Reject tampered or unauthorized relationships
-**Traceability:** BR-18–19, BR-43–44; TSD §§6.2, 10
+### US-004 — Preserve the independent Deal Desk trigger
+**Developer persona:** BE
 
-**Scenario:** Tamper with relationship IDs or submit an unrelated/inactive Care Plan.
+**User story**  
+As Deal Desk, I want the existing `Discount > 10%` approval trigger to remain independent, so that the Finance enhancement does not weaken the current discount control.
 
-**Expected result:** Patient/medication are derived server-side; tampering and unauthorized context are rejected.
+**Business Value**  
+Maintains the existing governance control while adding TCV-based Finance oversight.
 
-### TC-12 — Enforce role and record-sharing access
-**Traceability:** BR-43–45, NFR-08; TSD §10
+**Scenarios / Acceptance Criteria**
+- **Given** discount is greater than 10%, **when** an Opportunity is evaluated, **then** the Deal Desk track is initiated regardless of TCV.
+- **Given** discount is exactly 10% or less, **when** an Opportunity is evaluated, **then** the Deal Desk track is not initiated by the existing rule.
+- **Given** TCV is greater than $500,000 and discount is 10% or less, **when** evaluated, **then** Finance starts and Deal Desk does not start solely due to TCV.
+- **Given** TCV is $500,000 or less and discount is greater than 10%, **when** evaluated, **then** Deal Desk starts and Finance does not start solely due to TCV.
 
-**Scenario:** Test care manager, assigned pharmacist, unauthorized user, Clinical Pharmacist, and administrator access.
+**Definition of Ready (DoR)**
+- Existing Deal Desk process and current threshold are baseline-tested.
+- Ownership of the existing process is confirmed.
 
-**Expected result:** Access matches role and record-sharing rules; unauthorized creation/read is prevented.
+**Definition of Done (DoD)**
+- Existing Deal Desk configuration is unchanged except for required orchestration.
+- All four trigger combinations are tested and pass.
+- Regression evidence confirms existing Deal Desk behavior.
 
-### TC-13 — Honor CRUD, FLS, and sharing permissions
-**Traceability:** NFR-08; TSD §§8, 10
+**Dependencies**  
+DEP-02.
 
-**Scenario:** Remove CRUD/FLS/sharing permissions and attempt operations/cross-patient access.
+---
 
-**Expected result:** Apex honors CRUD/FLS/sharing and performs no unauthorized DML.
+### US-005 — Run approval tracks in parallel and require all triggered approvals
+**Developer persona:** BE
 
-### TC-14 — Allow creator edit before 24 hours
-**Traceability:** BR-20, BRULE-09; TSD §6.3
+**User story**  
+As a Sales representative, I want applicable Finance and Deal Desk approvals to run concurrently and determine full approval only after every triggered track approves, so that I avoid unnecessary sequential delay without losing control.
 
-**Scenario:** Creator edits own entry before 24 hours.
+**Business Value**  
+Reduces avoidable cycle time while ensuring all required approval authorities sign off.
 
-**Expected result:** Update succeeds with server-side validation; no new insert audit event is created.
+**Scenarios / Acceptance Criteria**
+- **Given** both TCV and discount triggers are true, **when** the Opportunity is submitted, **then** Finance and Deal Desk initiate without either waiting for the other.
+- **Given** only Finance is triggered, **when** Finance approves, **then** the Opportunity can reach full approval without a Deal Desk approval.
+- **Given** only Deal Desk is triggered, **when** Deal Desk approves, **then** the Opportunity can reach full approval without a Finance approval.
+- **Given** both tracks are triggered and one approves while the other is pending, **when** status is evaluated, **then** the Opportunity is not fully approved.
+- **Given** both tracks are triggered and both approve, **when** the final approval is recorded, **then** the Opportunity is fully approved.
+- **Given** one triggered track rejects, **when** the rejection is recorded, **then** the Opportunity cannot reach full approval in that cycle.
 
-### TC-15 — Enforce edit authorization and 24-hour window
-**Traceability:** BR-21, BRULE-10; TSD §6.3
+**Definition of Ready (DoR)**
+- Salesforce orchestration approach supports concurrent execution.
+- Approval status model and full-sign-off state are agreed.
+- Timing measurement boundaries are defined or explicitly deferred (OD-07).
 
-**Scenario:** Creator edits at/after 24 hours and non-creator edits at any time.
+**Definition of Done (DoD)**
+- Parallel orchestration is implemented without sequential dependency.
+- Mixed pending/approved/rejected combinations are tested.
+- Performance and audit evidence demonstrate both tracks start independently.
 
-**Expected result:** Controlled authorization/edit-window error; record remains unchanged. Confirm exact boundary inclusivity.
+**Dependencies**  
+DEP-02, OD-07; RISK-05.
 
-### TC-16 — Fail closed on PHI audit write failure
-**Traceability:** BR-17, BR-22, NFR-04; TSD §§6.2, 8, 11
+# EPIC 2 — Approval Outcomes and Resubmission
 
-**Scenario:** Force PHI audit write failure during valid insert.
+## Feature F2.1 — Handle rejection feedback
 
-**Expected result:** Transaction fails closed; no un-audited Dose Log or downstream alert exists; controlled `AUDIT_FAILURE`.
+### US-006 — Return a rejected Opportunity with combined comments
+**Developer persona:** BE
 
-### TC-17 — Prevent PHI leakage into telemetry and tasks
-**Traceability:** BR-24–25, NFR-07; TSD §§7, 10, 12
+**User story**  
+As a Sales representative, I want a rejected Opportunity returned with comments from every approval track that started, so that I can address all identified issues before resubmitting.
 
-**Scenario:** Enter PHI-like Notes and inspect UI errors, logs, Flow faults, Task text, and audit data.
+**Business Value**  
+Prevents fragmented feedback and reduces rework across approval cycles.
 
-**Expected result:** Notes are not leaked into operational telemetry, Task subjects/comments, or fault messages.
+**Scenarios / Acceptance Criteria**
+- **Given** Finance rejects an Opportunity and Deal Desk was not triggered, **when** rejection completes, **then** the Opportunity returns to the rep with the Finance comments.
+- **Given** Deal Desk rejects an Opportunity and Finance was not triggered, **when** rejection completes, **then** the Opportunity returns to the rep with the Deal Desk comments.
+- **Given** both tracks started and Finance rejects while Deal Desk is pending or approved, **when** the cycle is rejected, **then** the Opportunity returns to the rep and includes Finance comments plus any available Deal Desk comments from that cycle.
+- **Given** both tracks started and Deal Desk rejects while Finance is pending or approved, **when** the cycle is rejected, **then** the Opportunity returns to the rep and includes Deal Desk comments plus any available Finance comments from that cycle.
+- **Given** an approver rejects without comments, **when** rejection is recorded, **then** the system preserves the rejection outcome and clearly indicates that no comment was supplied rather than fabricating one.
 
-### TC-18 — Calculate adherence windows and boundaries
-**Traceability:** BR-26–29, BRULE-01–04; TSD §§5–6.4
+**Definition of Ready (DoR)**
+- Combined-comment format, ordering, visibility, and field limits are agreed.
+- Recipients for rejection notification are defined (OD-06).
+- Salesforce rejection semantics for parallel tracks are confirmed.
 
-**Scenario:** Calculate windows with in/out boundary schedules and logs.
+**Definition of Done (DoD)**
+- Rejection returns the Opportunity to the rep in every track combination.
+- Combined comments are retained and visible to authorized users.
+- Tests cover one-track, two-track, pending, approved, and blank-comment cases.
 
-**Expected result:** Counts use `Dose_Schedule__c` and applicable `Dose_Log__c`; formula and rolling boundaries are correct.
+**Dependencies**  
+DEP-02, OD-06, OD-08, OD-09; RISK-05.
 
-### TC-19 — Handle zero scheduled doses and integrity anomalies
-**Traceability:** BRULE-01–03; TSD §§5, 6.4
+---
 
-**Scenario:** Calculate zero scheduled doses and missed-greater-than-scheduled integrity case.
+## Feature F2.2 — Restart approval on resubmission
 
-**Expected result:** Zero yields null/no percentage threshold; integrity anomaly is reported, not silently clamped. Confirm product behavior.
+### US-007 — Re-evaluate triggers and start a clean approval cycle
+**Developer persona:** BE
 
-### TC-20 — Deduplicate dose events
-**Traceability:** BR-29; TSD §6.4
+**User story**  
+As a Sales representative, I want resubmission to start a fresh approval cycle based on current Opportunity values, so that prior approvals cannot bypass required review.
 
-**Scenario:** Provide duplicate records for one Care Plan/medication/dose timestamp.
+**Business Value**  
+Maintains control integrity when deal values, discounts, or terms change after rejection.
 
-**Expected result:** Duplicate dose event is counted once according to confirmed identity semantics.
+**Scenarios / Acceptance Criteria**
+- **Given** a rejected Opportunity is resubmitted, **when** the approval process starts, **then** all applicable tracks restart from step 1.
+- **Given** both triggers are true on resubmission, **when** the new cycle starts, **then** Finance and Deal Desk restart in parallel.
+- **Given** a prior cycle had one or more approvals, **when** a new cycle starts, **then** no prior approval satisfies a new-cycle approval requirement.
+- **Given** TCV or discount changed between rejection and resubmission, **when** the new cycle evaluates, **then** Finance and Deal Desk eligibility is determined from the current values.
+- **Given** a prior Finance-triggered Opportunity is resubmitted with TCV exactly $500,000 or less, **when** the new cycle evaluates, **then** Finance does not start solely from the prior cycle.
+- **Given** the Opportunity is resubmitted without required rep action or required data, **when** submission is attempted, **then** the system prevents submission and explains the validation failure.
 
-### TC-21 — Apply threshold and rounding policy
-**Traceability:** BR-27, BR-32, BR-34; TSD §§5, 7
+**Definition of Ready (DoR)**
+- New-cycle identifier/history behavior is defined.
+- Current-value re-evaluation and validation rules are agreed.
+- Rep permissions and resubmission UI/API path are available.
 
-**Scenario:** Test percentages exactly at and just below 60%/80%, including display rounding.
+**Definition of Done (DoD)**
+- Clean-slate resubmission is implemented.
+- Trigger changes and prior-approval non-carryover are automated-tested.
+- Cycle history distinguishes the original cycle from each resubmission.
 
-**Expected result:** Display uses approved precision; thresholds use unrounded value; “below” excludes exact boundary. Confirm rounding policy.
+**Dependencies**  
+DEP-02, OD-09; RISK-01, RISK-05.
 
-### TC-22 — Create normal task for moderate adherence risk
-**Traceability:** BR-32, BR-35–38, BRULE-11–12
+# EPIC 3 — Notifications, Reporting and Auditability
 
-**Scenario:** Cause 30-day adherence below 80% but at least 60%.
+## Feature F3.1 — Notify Finance approval participants
 
-**Expected result:** One Normal Task on Case to primary care manager with `ADHERENCE_LT_80`.
+### US-008 — Send Finance approval email notifications
+**Developer persona:** BE
 
-### TC-23 — Create high task for consecutive misses
-**Traceability:** BR-33, BR-35–38
+**User story**  
+As a Finance approver, I want an email notification when a Finance approval is assigned or has relevant status activity, so that I can act on the approval promptly.
 
-**Scenario:** Cause ≥3 consecutive missed doses in seven days.
+**Business Value**  
+Improves Finance responsiveness and creates an accessible notification trail.
 
-**Expected result:** One High Task to primary care manager with `CONSECUTIVE_MISSES_3_7D`; non-consecutive misses do not qualify.
+**Scenarios / Acceptance Criteria**
+- **Given** a Finance track is initiated, **when** an approver is assigned, **then** an email is sent to the applicable Finance approver.
+- **Given** a Finance approval is rejected or the Opportunity is resubmitted, **when** the event occurs, **then** the configured relevant participants receive the required email notification.
+- **Given** the notification service fails, **when** an approval event occurs, **then** the approval outcome is not falsely reported as notified and the failure is logged for support follow-up.
+- **Given** only Deal Desk is triggered, **when** the Opportunity enters approval, **then** no Finance assignment email is sent.
 
-### TC-24 — Create clinical-review task for severe adherence risk
-**Traceability:** BR-34, BR-45; TSD §7
+**Definition of Ready (DoR)**
+- Event list, recipients, templates, links, and sender identity are approved.
+- OD-06 is resolved.
+- Email delivery and failure logging approach are confirmed.
 
-**Scenario:** Cause 30-day adherence below 60%.
+**Definition of Done (DoD)**
+- Required Finance emails are configured and tested.
+- Recipient, subject, content, and Salesforce record-link tests pass.
+- Delivery failure is observable without blocking unrelated approval history.
 
-**Expected result:** High clinical-review Task to Clinical Pharmacist and required care-manager copy; `ADHERENCE_LT_60`; no lower severity duplicate.
+**Dependencies**  
+DEP-03, OD-06, OD-08; NFR-03.
 
-### TC-25 — Resolve multiple thresholds by highest severity
-**Traceability:** BR-37–38, BRULE-11–12; TSD §7
+---
 
-**Scenario:** Cause all thresholds in one evaluation.
+### US-009 — Post Finance approval events to the shared Teams channel
+**Developer persona:** BE
 
-**Expected result:** Highest severity wins and patient 24-hour cap is respected.
+**User story**  
+As the Finance approval team, I want Finance approval events posted to `#finance-approvals`, so that the team has shared visibility into the pipeline without relying on direct messages.
 
-### TC-26 — Enforce 24-hour patient alert cap
-**Traceability:** BR-37, BRULE-11; TSD §7
+**Business Value**  
+Makes Finance approval activity visible to the intended team and supports operational coordination.
 
-**Scenario:** Trigger another threshold within 24 hours after an adherence Task.
+**Scenarios / Acceptance Criteria**
+- **Given** a Finance approval event is configured for channel visibility, **when** the event occurs, **then** a post is sent to the shared `#finance-approvals` channel.
+- **Given** both Finance and Deal Desk tracks are active, **when** a Finance event occurs, **then** the Teams post represents the Finance event and does not imply Deal Desk approval.
+- **Given** the Teams connector cannot post, **when** a Finance event occurs, **then** the connector failure is logged and surfaced; no unauthorized direct-message fallback is used.
+- **Given** only Deal Desk is triggered, **when** the Opportunity enters approval, **then** no Finance channel post is generated solely for that event.
 
-**Expected result:** No more than one adherence Task per patient in the period; existing alert is retained/commented per approved policy.
+**Definition of Ready (DoR)**
+- OD-02 is resolved; channel identity and connector authentication are available.
+- Post event types, content, sensitive-data rules, and retry behavior are approved.
 
-### TC-27 — Deduplicate against open and closed Tasks
-**Traceability:** BR-39, BRULE-13; TSD §7
+**Definition of Done (DoD)**
+- Shared-channel posting is implemented for approved Finance events.
+- Connector success, failure, retry/idempotency, and no-DM tests pass.
+- Operational logging and support ownership are documented.
 
-**Scenario:** Trigger a threshold where same patient/Case/threshold has an open Task; repeat with closed Task.
+**Dependencies**  
+DEP-04, OD-02, OD-06; RISK-03.
 
-**Expected result:** Open Task receives comment and no duplicate; closed Task does not suppress a new Task.
+---
 
-### TC-28 — Deduplicate dual-recipient severe alerts
-**Traceability:** BR-34, BR-37, BR-39; TSD §7
+### US-010 — Notify participants on rejection and resubmission
+**Developer persona:** BE
 
-**Scenario:** Test below-60% dual-recipient deduplication with one/both recipient Tasks existing.
+**User story**  
+As an approval participant, I want rejection and resubmission events communicated consistently, so that I know when action is required and which approval cycle is active.
 
-**Expected result:** Existing matching Tasks are commented; missing recipients are handled consistently with approved one-task cap. Clarify apparent requirement conflict.
+**Business Value**  
+Reduces missed actions and ambiguity after a parallel approval outcome.
 
-### TC-29 — Execute daily scheduled evaluation
-**Traceability:** BR-40–42; TSD §9
+**Scenarios / Acceptance Criteria**
+- **Given** any active track rejects, **when** the Opportunity returns to the rep, **then** the configured participants are notified of rejection and can access the comments.
+- **Given** a rejected Opportunity is resubmitted, **when** the new cycle starts, **then** the configured participants are notified that a new cycle is active.
+- **Given** both tracks started, **when** one rejects, **then** the notification distinguishes the rejecting track and includes combined available comments.
+- **Given** recipients or content are not approved, **when** the solution is prepared for release, **then** notification behavior remains pending OD-06 rather than using assumed recipients.
 
-**Scenario:** Execute daily Flow at 06:30 IST with qualifying and non-qualifying Care Plans.
+**Definition of Ready (DoR)**
+- OD-06 is resolved with recipients, event matrix, and content.
+- New-cycle identification and comment visibility are defined.
 
-**Expected result:** Only Care Plans with a log in prior 45 days are evaluated; same rules apply; run metrics are captured.
+**Definition of Done (DoD)**
+- Rejection/resubmission event matrix is implemented.
+- All one-track and two-track scenarios are tested.
+- Duplicate and failed notifications are logged and supportable.
 
-### TC-30 — Scale targeted evaluation with chunking
-**Traceability:** BR-30, BR-41, BR-46, NFR-05; TSD §§9, 11
+**Dependencies**  
+OD-06, OD-08, DEP-04; NFR-03.
 
-**Scenario:** Execute targeted scheduled evaluation for 4,200 patients/≥200 qualifying Care Plans.
+## Feature F3.2 — Provide Finance and Sales Ops visibility
 
-**Expected result:** Chunking prevents governor failure; ≤200 Care Plans/transaction or equivalent; completes within 45 minutes; no full-population render recalculation.
+### US-011 — Report Finance queue volume and approval time by tier
+**Developer persona:** BE
 
-### TC-31 — Process collection-based Flow Apex requests
-**Traceability:** TSD §§8–9, 11
+**User story**  
+As a Finance stakeholder, I want a monthly view of Opportunities in the Finance approval queue and approval time by Finance sub-tier, so that I can monitor workload and responsiveness.
 
-**Scenario:** Invoke collection-based Flow Apex with 200 mixed requests.
+**Business Value**  
+Supports Finance capacity planning and identifies delays between Director- and CFO-level reviews.
 
-**Expected result:** One result per request, correct decisions, no SOQL/DML in loops, and isolated/reportable failures.
+**Scenarios / Acceptance Criteria**
+- **Given** Opportunities have entered the Finance track, **when** the Finance report is run for a selected month, **then** it shows Opportunities currently or recently in the Finance queue according to the approved reporting definition.
+- **Given** Finance approvals are assigned to Anita or Ravi, **when** approval time is calculated, **then** the report distinguishes Finance Director and CFO sub-tiers.
+- **Given** an approval is pending, approved, or rejected, **when** the report is filtered, **then** the status is represented accurately.
+- **Given** approval-time start/end points or SLA are not defined, **when** the report is designed, **then** the metric definition remains an explicit dependency rather than an invented target.
+- **Given** a user lacks Finance report permission, **when** the report is opened, **then** access is denied or restricted according to the approved access model.
 
-### TC-32 — Meet keyboard accessibility during validation recovery
-**Traceability:** BR-04, NFR-02; TSD §§11, 13
+**Definition of Ready (DoR)**
+- OD-03 provides required dashboard fields.
+- OD-07 defines timing start/end points and reporting period.
+- OD-08 defines access permissions.
 
-**Scenario:** Complete creation and recover from validation error using keyboard only.
+**Definition of Done (DoD)**
+- Monthly Finance queue view and tier segmentation are available.
+- Calculations are reconciled against Salesforce approval history.
+- Permission, empty-result, date-boundary, and pending-item tests pass.
 
-**Expected result:** Labels, focus, error association/announcement, keyboard submission, and recovery meet WCAG-aligned behavior.
+**Dependencies**  
+DEP-05, OD-03, OD-07, OD-08, OD-09; NFR-04, NFR-05.
 
-### TC-33 — Meet care-manager entry time objective
-**Traceability:** BR-05, NFR-01; TSD §§11, 13
+---
 
-**Scenario:** Time standard entry for six UAT care managers.
+### US-012 — Report rejection reasons and expose the view to Sales Ops
+**Developer persona:** BE
 
-**Expected result:** At least 95% of trained users complete a standard entry within 15 seconds.
+**User story**  
+As Sales Ops and FP&A, I want Finance rejection reasons and the Finance approval view available in reporting, so that I can identify recurring issues and monitor the control.
 
-### TC-34 — Meet latency targets under load
-**Traceability:** NFR-05; TSD §11
+**Business Value**  
+Improves transparency, supports trend analysis, and gives Sales Ops the requested operational visibility.
 
-**Scenario:** Measure UI, create, and single-Care-Plan calculation latency under stated load.
+**Scenarios / Acceptance Criteria**
+- **Given** a Finance cycle has a rejection comment, **when** reporting data is refreshed, **then** the rejection reason is available against the relevant Opportunity and approval cycle.
+- **Given** a cycle has no rejection, **when** the report is viewed, **then** it is not incorrectly represented as rejected.
+- **Given** a Finance approval view is published for Sales Ops, **when** an authorized Sales Ops user opens it, **then** the user can access the agreed Finance queue, tier-time, and rejection information.
+- **Given** a user is not authorized for the report, **when** access is attempted, **then** Salesforce enforces the approved permission model.
+- **Given** multiple approval cycles exist for one Opportunity, **when** rejection reasons are displayed, **then** each reason is attributable to the correct cycle and track.
 
-**Expected result:** Meets p95/p99 targets: open 1.0s/—, create 2.0s/4.0s, calculation 1.5s/3.0s; no full-population recalculation.
+**Definition of Ready (DoR)**
+- OD-03 dashboard field list and OD-08 access rules are approved.
+- Rejection reason source, normalization, and cycle-level association are defined.
+- Finance and Sales Ops report owners are identified.
 
-### TC-35 — Sustain throughput and controlled fault handling
-**Traceability:** NFR-04–06; TSD §§8, 11–12
+**Definition of Done (DoD)**
+- Finance rejection reason reporting is available.
+- Sales Ops dashboard contains the agreed Finance view.
+- Multi-cycle, blank-reason, permission, and data-reconciliation tests pass.
 
-**Scenario:** Sustain 60 creates/min for 10 minutes and inject audit/Flow faults.
+**Dependencies**  
+DEP-05, OD-03, OD-08, OD-09; RISK-07.
 
-**Expected result:** Throughput, audit completeness, controlled failure, deduplication, and no-PHI telemetry targets hold.
+---
 
-### TC-36 — Rehearse rollback and operational monitoring
-**Traceability:** TSD §§12, 14–15
+## Feature F3.3 — Retain approval audit history
 
-**Scenario:** Rehearse rollback and operational monitoring.
+### US-013 — Maintain auditable records for each approval cycle
+**Developer persona:** BE
 
-**Expected result:** Flows stop in documented order; LWC/permission rollback works; existing logs/audit remain; support detects and can handle failures.
+**User story**  
+As Finance and Sales Ops, I want each Finance and Deal Desk decision, approver, comment, status, and cycle retained in Salesforce, so that large-deal approvals are traceable and reportable.
+
+**Business Value**  
+Provides evidence of control operation and supports investigation, reporting, and revenue-governance oversight.
+
+**Scenarios / Acceptance Criteria**
+- **Given** an approval track starts, **when** its status changes, **then** the system records the track, approver, status, timestamp, and associated Opportunity/cycle.
+- **Given** an approver supplies comments, **when** the decision is recorded, **then** the comments are retained with the corresponding decision.
+- **Given** both tracks operate in parallel, **when** either track changes status, **then** the history distinguishes Finance from Deal Desk and does not overwrite the other track.
+- **Given** a resubmission starts, **when** the new cycle begins, **then** it is distinguishable from prior cycles and prior approvals are not reused as current approvals.
+- **Given** an authorized report user queries approval history, **when** results are returned, **then** the results support the Finance queue, tier-time, rejection, and full-sign-off reporting needs.
+- **Given** an unauthorized user queries approval history, **when** access is attempted, **then** Salesforce enforces approved access restrictions.
+
+**Definition of Ready (DoR)**
+- Required history fields and cycle identifier are defined.
+- OD-08 access and OD-09 retention requirements are resolved.
+- Standard approval history/custom report feasibility is confirmed.
+
+**Definition of Done (DoD)**
+- Audit records are retained for all approval tracks and cycles.
+- Data is immutable or change-controlled according to approved governance.
+- Traceability, security, retention, and reporting reconciliation tests pass.
+
+**Dependencies**  
+DEP-05, OD-08, OD-09; NFR-01, NFR-05, NFR-06.
+
+---
+
+# Cross-Backlog Notes
+
+## Explicitly deferred decision
+High-TCV renewal handling is not converted into an executable story because BR-24–BR-26 are proposed/open. Before implementation, stakeholders must define whether standard-priced renewals with 0% additional discount may bypass Finance, what “standard pricing” means, how prior-term comparison works, and how Deal Desk remains independent. Once approved, renewal behavior can be added without changing the core trigger/routing stories.
+
+## Shared dependencies and risks
+- **DEP-01 / RISK-01:** CPQ must populate `Total_Contract_Value__c` accurately; missing/invalid-value behavior requires approval.
+- **DEP-02:** Salesforce must support two independent parallel tracks.
+- **DEP-03 / OD-01:** named approver identities, CFO alignment, and delegation must be available.
+- **DEP-04 / OD-02 / RISK-03:** Teams connector must support a shared channel post to `#finance-approvals`.
+- **OD-03 / OD-07 / OD-08 / OD-09:** reporting fields, timing definitions, permissions, and retention remain prerequisites.
+- **OD-06:** rejection/resubmission notification recipients and content remain undefined.
+
+## INVEST validation summary
+- **Independent:** stories are separated by trigger, route, orchestration, outcome, notifications, reporting, and audit concern.
+- **Negotiable:** unresolved decisions are explicitly dependencies, not hidden implementation commitments.
+- **Valuable:** each story maps to BR-01–BR-23 and supporting objectives.
+- **Estimable/Testable:** scenarios include happy paths, boundaries, errors, permissions, and parallel-track combinations.
+- **Small:** each story targets one coherent behavior or reporting outcome.
+
+## References
+- `BRD (4).md`, **Large Deal Approval Enhancement**, v1.0, especially BR-01–BR-23, NFR-01–NFR-06, RULE-01–RULE-09, OD-01–OD-09, and DEP-01–DEP-06.
+- Salesforce Opportunity field `Total_Contract_Value__c`.
+- Existing Deal Desk approval rule `Discount > 10%`.
