@@ -1,0 +1,4 @@
+Subject: Strategic approval submission failed: {!Opportunity.Name}
+
+The approval request could not be created. Salesforce remains the system of record; contact the admin on-call.
+<!-- TODO: Bind error code and correlation ID. -->
