@@ -1,0 +1,4 @@
+Subject: Second reminder: Strategic CRO approval pending for {!Opportunity.Name}
+
+This approval has been pending for 48 hours.
+<!-- TODO: Bind Salesforce email template metadata. -->
