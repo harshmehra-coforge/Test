@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="UTF-8"?><CustomField xmlns="http://soap.sforce.com/2006/04/metadata"><fullName>CRO_Delegated_From__c</fullName><label>CRO Delegated From</label><type>Lookup</type><referenceTo>User</referenceTo><relationshipName>Delegated_CRO_Approvals</relationshipName><relationshipLabel>Delegated CRO Approvals</relationshipLabel></CustomField>
