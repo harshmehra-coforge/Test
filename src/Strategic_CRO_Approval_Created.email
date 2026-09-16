@@ -1,0 +1,5 @@
+Subject: Strategic CRO approval required: {!Opportunity.Name}
+
+Strategic Account Opportunity {!Opportunity.Name} requires CRO approval.
+TCV: {!Opportunity.TCV__c}; submission version: {!Opportunity.Approval_Submission_Version__c}.
+<!-- TODO: Bind Salesforce email template metadata and approval action URL. -->
