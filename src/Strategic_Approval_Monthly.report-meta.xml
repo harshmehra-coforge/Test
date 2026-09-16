@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="UTF-8"?><Report xmlns="http://soap.sforce.com/2006/04/metadata"><name>Strategic Approval Monthly</name><reportType>Opportunities</reportType><!-- TODO: Configure snapshot-based filters, TCV/discount bands, reminders, escalation, and p95 cycle-time formulas. --></Report>
