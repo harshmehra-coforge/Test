@@ -1,0 +1,4 @@
+Subject: Strategic approval completed: {!Opportunity.Name}
+
+The approval request has completed.
+<!-- TODO: Bind final decision, effective approver, and template metadata. -->
