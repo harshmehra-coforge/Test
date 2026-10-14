@@ -1,108 +1,201 @@
-The intake document provided is focused on a Salesforce Opportunity approval process for high-value deals, not a hospital inventory management app. I will proceed to generate epics, features, and user stories for the "Large Deal Approval Enhancement" system as described in your meeting notes.
+# EPIC: Large Deal Approval Enhancement
 
-**Assumption:** The scope is to automate and enhance the approval workflow for large deals in Salesforce, introducing a parallel Finance approval track with internal sub-tiers, notifications, and reporting.
+## Feature 1: Parallel Finance Approval for High-TCV Opportunities
 
----
-
-**Structure:**
-- 2 Epics:
-  1. Parallel Approval Workflow for Large Deals
-  2. Finance Approval Reporting & Notifications
-
-I will expand the first feature of Epic 1 into full user stories as a sample.
-
----
-
-## Epic 1: Parallel Approval Workflow for Large Deals
-
-### Feature 1.1: Finance Approval Track for High-Value Opportunities
-
-#### Story 1.1.1 (BE): Trigger Finance Approval for TCV > $500K
-- **As a** backend developer
-- **I want** the system to automatically trigger a Finance approval process for any Opportunity where Total Contract Value (TCV) exceeds $500K
-- **So that** Finance can review and approve high-value deals before closure
+### User Story 1.1 (UI)
+**As** a Sales Operations user,
+**I want** the Opportunity approval process to trigger a parallel Finance approval when TCV > $500K,
+**so that** Finance can review and approve large deals before closure.
 
 **Acceptance Criteria / Scenarios:**
-- When an Opportunity is created or updated and TCV > $500K, a Finance approval request is generated.
-- The trigger is independent of discount percentage.
-- The approval runs in parallel with the existing Deal Desk approval.
+- Scenario 1 (Happy Path): Opportunity with TCV $600K triggers both Deal Desk and Finance approval in parallel; both approve, deal closes.
+- Scenario 2 (Boundary): Opportunity with TCV exactly $500K triggers Finance approval.
+- Scenario 3 (Error): If either Deal Desk or Finance rejects, deal returns to rep with combined comments.
+- Scenario 4 (Re-submission): On resubmission, both approvals restart from scratch.
 
-**DoR:** TCV field mapping confirmed; Opportunity object schema available  
-**DoD:** Automated trigger tested for all Opportunity create/update flows; unit tests cover TCV edge cases  
-**Business Value:** Prevents unreviewed high-value deals from closing  
-**Dependencies:** Salesforce CPQ integration  
-**References:** Meeting_Note_02_High_Value_Deal 2.md
+**Definition of Ready (DoR):**
+- TCV field is reliably populated on Opportunity.
+- Finance approvers (Anita, Ravi) are confirmed.
+- Teams channel and email notification endpoints are available.
+
+**Definition of Done (DoD):**
+- Parallel approval logic is live in production.
+- All scenarios tested (including rejections and resubmissions).
+- Notifications sent as specified.
+
+**Business Value:**
+- Ensures Finance oversight on all large deals, preventing audit/compliance issues.
+
+**Dependencies:**
+- MS Teams connector for channel posts.
+- Accurate TCV calculation from CPQ.
+
+**Developer Persona:** UI
 
 ---
 
-#### Story 1.1.2 (BE): Internal Finance Routing by TCV Sub-Tier
-- **As a** backend developer
-- **I want** the system to route Finance approvals to the Finance Director for $500K–$2M and to the CFO for >$2M
-- **So that** the correct Finance approver reviews each deal
+### User Story 1.2 (BE)
+**As** a Salesforce backend developer,
+**I want** to implement automation that triggers Finance approval for Opportunities with TCV > $500K, with internal routing based on TCV,
+**so that** the correct Finance approver is assigned and approvals run in parallel with Deal Desk.
 
 **Acceptance Criteria / Scenarios:**
-- If TCV is between $500K and $2M, assign approval to Finance Director.
-- If TCV is above $2M, assign approval to CFO.
-- Approver assignment is visible in the approval record.
+- Scenario 1 (Happy Path): TCV $1M triggers Anita; TCV $2.5M triggers Ravi.
+- Scenario 2 (Boundary): TCV exactly $2M routes to Ravi.
+- Scenario 3 (Error): If TCV is missing, approval does not trigger and error is logged.
+- Scenario 4 (Parallel): Both Deal Desk and Finance approvals can be in progress independently.
 
-**DoR:** Approver user IDs confirmed  
-**DoD:** Routing logic tested with sample Opportunities  
-**Business Value:** Ensures proper oversight for the largest deals  
-**Dependencies:** User directory access  
-**References:** Meeting_Note_02_High_Value_Deal 2.md
+**DoR:**
+- Approver assignments confirmed.
+- CPQ populates TCV reliably.
+
+**DoD:**
+- Automation deployed and tested.
+- Routing logic matches requirements.
+
+**Business Value:**
+- Prevents large deals from bypassing Finance.
+
+**Dependencies:**
+- CPQ integration.
+- Approver directory.
+
+**Developer Persona:** BE
 
 ---
 
-#### Story 1.1.3 (BE): Parallel Approval Processing
-- **As a** backend developer
-- **I want** Finance and Deal Desk approvals to run in parallel
-- **So that** total approval cycle time is minimized
+### User Story 1.3 (QA)
+**As** a QA engineer,
+**I want** to validate that parallel approval and routing logic work as specified,
+**so that** all edge cases and error scenarios are covered before go-live.
 
 **Acceptance Criteria / Scenarios:**
-- Both approvals can be in progress simultaneously.
-- Deal is only approved if both tracks approve.
-- If either rejects, deal is returned to rep with combined comments.
+- Scenario 1: Test all TCV thresholds and routing.
+- Scenario 2: Simulate rejections and resubmissions.
+- Scenario 3: Validate notifications (email + Teams).
 
-**DoR:** Parallel workflow design reviewed  
-**DoD:** Integration tests for parallel approval flows  
-**Business Value:** Reduces deal cycle time  
-**Dependencies:** Existing Deal Desk approval process  
-**References:** Meeting_Note_02_High_Value_Deal 2.md
+**DoR:**
+- Test environment with sample Opportunities.
+
+**DoD:**
+- All test cases pass.
+- No regression on existing approval flows.
+
+**Business Value:**
+- Ensures robust, error-free deployment.
+
+**Dependencies:**
+- Test data.
+
+**Developer Persona:** QA
 
 ---
 
-#### Story 1.1.4 (QA): Rejection and Resubmission Handling
-- **As a** QA engineer
-- **I want** to verify that if either approval track rejects, the deal is returned to the rep and both tracks restart on resubmission
-- **So that** the process is robust and repeatable
+## Feature 2: Notification and Reporting Enhancements
+
+### User Story 2.1 (BE)
+**As** a backend developer,
+**I want** to send Finance approval notifications via email and Teams channel post when triggered,
+**so that** the Finance team is promptly informed of pending approvals.
 
 **Acceptance Criteria / Scenarios:**
-- On rejection by either track, combined comments are sent to the rep.
-- On resubmission, both approval tracks restart from scratch.
+- Scenario 1: Email sent to Finance approver when TCV > $500K.
+- Scenario 2: Teams channel post created for each triggered approval.
+- Scenario 3: On rejection, combined comments sent to rep.
 
-**DoR:** Test cases defined  
-**DoD:** All rejection/resubmission scenarios pass  
-**Business Value:** Ensures compliance and auditability  
-**Dependencies:** Notification system  
-**References:** Meeting_Note_02_High_Value_Deal 2.md
+**DoR:**
+- Email and Teams endpoints available.
+
+**DoD:**
+- Notifications sent as specified.
+
+**Business Value:**
+- Improves Finance team awareness and response time.
+
+**Dependencies:**
+- Teams connector.
+
+**Developer Persona:** BE
 
 ---
 
-#### Story 1.1.5 (UI): Approval Status Display
-- **As a** UI developer
-- **I want** to display the status of both approval tracks on the Opportunity record
-- **So that** users can see which approvals are pending, approved, or rejected
+### User Story 2.2 (UI)
+**As** a Sales Ops or Finance user,
+**I want** to view a dashboard/report of deals in Finance approval, approval times, and rejection reasons,
+**so that** I can monitor process efficiency and identify bottlenecks.
 
 **Acceptance Criteria / Scenarios:**
-- Opportunity record shows Deal Desk and Finance approval statuses.
-- Shows assigned approver for Finance track.
+- Scenario 1: Dashboard shows all deals in Finance queue.
+- Scenario 2: Approval time by sub-tier (Director/CFO) is visible.
+- Scenario 3: Rejection reasons are tracked and reportable.
 
-**DoR:** UI wireframes available  
-**DoD:** UI tested in Salesforce sandbox  
-**Business Value:** Improves transparency for sales reps  
-**Dependencies:** Backend approval status API  
-**References:** Meeting_Note_02_High_Value_Deal 2.md
+**DoR:**
+- Reporting requirements finalized by Kavita.
+
+**DoD:**
+- Dashboard live and accessible to both Finance and Sales Ops.
+
+**Business Value:**
+- Enables process improvement and audit readiness.
+
+**Dependencies:**
+- Salesforce reporting tools.
+
+**Developer Persona:** UI
 
 ---
 
-Would you like me to expand the next feature or epic, or generate the full backlog as a downloadable file?
+### User Story 2.3 (QA)
+**As** a QA engineer,
+**I want** to test notification delivery and dashboard/report accuracy,
+**so that** all stakeholders receive timely and correct information.
+
+**Acceptance Criteria / Scenarios:**
+- Scenario 1: Simulate approval triggers and verify notifications.
+- Scenario 2: Validate dashboard data matches approval history.
+
+**DoR:**
+- Test data and notification endpoints.
+
+**DoD:**
+- All notification and reporting tests pass.
+
+**Business Value:**
+- Ensures reliable communication and reporting.
+
+**Dependencies:**
+- Test environment.
+
+**Developer Persona:** QA
+
+---
+
+## Feature 3: Renewal Auto-Approval Logic (Placeholder)
+
+### User Story 3.1 (BE)
+**As** a backend developer,
+**I want** to propose and implement logic for auto-approving standard renewals with high TCV but no additional discount,
+**so that** Finance is not burdened with unnecessary approvals.
+
+**Acceptance Criteria / Scenarios:**
+- Scenario 1: Renewal with TCV > $500K and 0% additional discount auto-approves.
+- Scenario 2: Renewal with non-standard terms triggers Finance approval.
+
+**DoR:**
+- Renewal logic requirements finalized.
+
+**DoD:**
+- Logic implemented and tested.
+
+**Business Value:**
+- Reduces Finance workload on standard renewals.
+
+**Dependencies:**
+- Renewal identification in Opportunity data.
+
+**Developer Persona:** BE
+
+---
+
+**References:**
+- Meeting_Note_02_High_Value_Deal 2.md
