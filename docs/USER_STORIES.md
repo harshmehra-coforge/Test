@@ -1,201 +1,290 @@
-# EPIC: Large Deal Approval Enhancement
+Assumption: Salesforce Approval Processes and existing Strategic Account field/security controls remain the implementation foundation; exact Salesforce configuration objects and Slack integration mechanism remain open for refinement.
 
-## Feature 1: Parallel Finance Approval for High-TCV Opportunities
+# EPIC: Strategic Account Deal Governance
 
-### User Story 1.1 (UI)
-**As** a Sales Operations user,
-**I want** the Opportunity approval process to trigger a parallel Finance approval when TCV > $500K,
-**so that** Finance can review and approve large deals before closure.
+**Scope:**  
+Approval visibility, CRO approval routing, escalation, delegation, notifications, resubmission controls, and reporting for Opportunities associated with Strategic Accounts.
 
-**Acceptance Criteria / Scenarios:**
-- Scenario 1 (Happy Path): Opportunity with TCV $600K triggers both Deal Desk and Finance approval in parallel; both approve, deal closes.
-- Scenario 2 (Boundary): Opportunity with TCV exactly $500K triggers Finance approval.
-- Scenario 3 (Error): If either Deal Desk or Finance rejects, deal returns to rep with combined comments.
-- Scenario 4 (Re-submission): On resubmission, both approvals restart from scratch.
+**Business Objectives:**
+- Ensure CRO visibility into meaningful Strategic Account deals.
+- Require CRO approval for Strategic Account Opportunities above $100K TCV, regardless of discount.
+- Preserve the existing Deal Desk approval behavior for discounts above 10%.
+- Provide controlled executive delegation and SLA escalation.
+- Improve auditability and QBR/Sales leadership reporting.
 
-**Definition of Ready (DoR):**
-- TCV field is reliably populated on Opportunity.
-- Finance approvers (Anita, Ravi) are confirmed.
-- Teams channel and email notification endpoints are available.
+**Personas:**
+- Sales Representative / Opportunity Owner
+- Deal Desk Manager
+- CRO
+- CRO Chief of Staff
+- Sales Operations
+- Salesforce Platform Administrator
+- QA / Test Analyst
+- Sales Leadership
+
+**Considerations:**
+- `Strategic_Account__c` is maintained by Sales Ops and is view-only for reps.
+- Routing is evaluated at submission time.
+- Deal Desk and CRO routing is conditional and sequential.
+- CRO approval SLA is 72 hours.
+- Chief of Staff delegation cannot approve Opportunities with TCV of $500K or more.
+- Rejected submissions restart the complete approval chain.
+
+## Epic 1: Strategic Account Deal Governance
+
+### Feature 1.1: Conditional Strategic Account Approval Routing
+
+**Description:**  
+Route Strategic Account Opportunities with TCV above $100K to the CRO for approval, while preserving the existing Deal Desk approval rule for discounts above 10%. Where both approvals apply, Deal Desk approval must precede CRO approval. Where Deal Desk does not apply, the CRO approval must begin directly.
 
 **Definition of Done (DoD):**
-- Parallel approval logic is live in production.
-- All scenarios tested (including rejections and resubmissions).
-- Notifications sent as specified.
+- Strategic Account status is evaluated from `Account.Strategic_Account__c`.
+- CRO approval triggers when Strategic Account is true and TCV is greater than $100K, including 0% discount.
+- Opportunities at exactly $100K TCV do not trigger CRO approval unless another existing rule applies.
+- Deal Desk remains the first approver when discount is greater than 10%.
+- CRO approval follows Deal Desk approval when both conditions apply.
+- CRO approval routes directly when Strategic Account and TCV conditions apply but discount is 10% or less.
+- A rejection prevents downstream approval.
+- Routing conditions are evaluated at submission time and remain unchanged for the in-flight request.
+- Non-Strategic Account Opportunities retain existing behavior.
+- Automated tests cover all routing combinations.
 
-**Business Value:**
-- Ensures Finance oversight on all large deals, preventing audit/compliance issues.
-
-**Dependencies:**
-- MS Teams connector for channel posts.
-- Accurate TCV calculation from CPQ.
-
-**Developer Persona:** UI
-
----
-
-### User Story 1.2 (BE)
-**As** a Salesforce backend developer,
-**I want** to implement automation that triggers Finance approval for Opportunities with TCV > $500K, with internal routing based on TCV,
-**so that** the correct Finance approver is assigned and approvals run in parallel with Deal Desk.
-
-**Acceptance Criteria / Scenarios:**
-- Scenario 1 (Happy Path): TCV $1M triggers Anita; TCV $2.5M triggers Ravi.
-- Scenario 2 (Boundary): TCV exactly $2M routes to Ravi.
-- Scenario 3 (Error): If TCV is missing, approval does not trigger and error is logged.
-- Scenario 4 (Parallel): Both Deal Desk and Finance approvals can be in progress independently.
-
-**DoR:**
-- Approver assignments confirmed.
-- CPQ populates TCV reliably.
-
-**DoD:**
-- Automation deployed and tested.
-- Routing logic matches requirements.
-
-**Business Value:**
-- Prevents large deals from bypassing Finance.
-
-**Dependencies:**
-- CPQ integration.
-- Approver directory.
+# 1.1 STORY: Route Strategic Account Opportunities to CRO Based on TCV
 
 **Developer Persona:** BE
 
----
+**User Story:**  
+As a Sales Operations administrator, I want Strategic Account Opportunities above $100K TCV to route to the CRO for approval regardless of discount, so that meaningful Strategic Account deals receive executive governance.
 
-### User Story 1.3 (QA)
-**As** a QA engineer,
-**I want** to validate that parallel approval and routing logic work as specified,
-**so that** all edge cases and error scenarios are covered before go-live.
+**Business Value:**  
+Prevents high-value Strategic Account deals from closing without CRO visibility or approval, including deals with no discount.
 
-**Acceptance Criteria / Scenarios:**
-- Scenario 1: Test all TCV thresholds and routing.
-- Scenario 2: Simulate rejections and resubmissions.
-- Scenario 3: Validate notifications (email + Teams).
+**Scenarios:**
 
-**DoR:**
-- Test environment with sample Opportunities.
+**Scenario: Happy path — Strategic Account above threshold with no discount**  
+Given an Opportunity is associated with an Account where `Strategic_Account__c = true`  
+And the Opportunity TCV is greater than $100,000  
+And the discount is 0%  
+When the Opportunity is submitted for approval  
+Then a CRO approval request is created  
+And the Opportunity is not approved solely because the discount is below the existing Deal Desk threshold.
 
-**DoD:**
-- All test cases pass.
-- No regression on existing approval flows.
+**Scenario: Boundary — TCV exactly at the threshold**  
+Given an Opportunity is associated with a Strategic Account  
+And the Opportunity TCV is exactly $100,000  
+When the Opportunity is submitted for approval  
+Then the Strategic Account CRO approval rule does not trigger based on TCV  
+And any applicable existing approval rule is evaluated independently.
 
-**Business Value:**
-- Ensures robust, error-free deployment.
+**Scenario: Boundary — TCV just above the threshold**  
+Given an Opportunity is associated with a Strategic Account  
+And the Opportunity TCV is $100,000.01  
+When the Opportunity is submitted for approval  
+Then a CRO approval request is created.
 
-**Dependencies:**
-- Test data.
+**Scenario: Error — Strategic Account indicator is unavailable**  
+Given the Account cannot be evaluated because `Strategic_Account__c` is unavailable or invalid  
+When the Opportunity is submitted for approval  
+Then the submission is prevented or routed to an administrative error path  
+And the system records an actionable error  
+And the Opportunity is not silently approved.
 
-**Developer Persona:** QA
+**Definition of Ready (DoR):**
+- TCV field and currency behavior are confirmed.
+- The CRO approver identity or approval group is configured.
+- The threshold comparison rule is approved as strictly greater than $100K.
+- Existing approval processes and non-Strategic routing are documented.
+- Test data exists for Strategic and non-Strategic Accounts.
 
----
-
-## Feature 2: Notification and Reporting Enhancements
-
-### User Story 2.1 (BE)
-**As** a backend developer,
-**I want** to send Finance approval notifications via email and Teams channel post when triggered,
-**so that** the Finance team is promptly informed of pending approvals.
-
-**Acceptance Criteria / Scenarios:**
-- Scenario 1: Email sent to Finance approver when TCV > $500K.
-- Scenario 2: Teams channel post created for each triggered approval.
-- Scenario 3: On rejection, combined comments sent to rep.
-
-**DoR:**
-- Email and Teams endpoints available.
-
-**DoD:**
-- Notifications sent as specified.
-
-**Business Value:**
-- Improves Finance team awareness and response time.
-
-**Dependencies:**
-- Teams connector.
-
-**Developer Persona:** BE
-
----
-
-### User Story 2.2 (UI)
-**As** a Sales Ops or Finance user,
-**I want** to view a dashboard/report of deals in Finance approval, approval times, and rejection reasons,
-**so that** I can monitor process efficiency and identify bottlenecks.
-
-**Acceptance Criteria / Scenarios:**
-- Scenario 1: Dashboard shows all deals in Finance queue.
-- Scenario 2: Approval time by sub-tier (Director/CFO) is visible.
-- Scenario 3: Rejection reasons are tracked and reportable.
-
-**DoR:**
-- Reporting requirements finalized by Kavita.
-
-**DoD:**
-- Dashboard live and accessible to both Finance and Sales Ops.
-
-**Business Value:**
-- Enables process improvement and audit readiness.
+**Definition of Done (DoD):**
+- Routing works for 0%, below-threshold, exact-threshold, and above-threshold TCV cases.
+- Invalid or unavailable trigger data cannot result in silent approval.
+- Automated and regression tests pass.
+- Approval history records the CRO request and submission timestamp.
+- Configuration is documented and reviewed by Sales Operations.
 
 **Dependencies:**
-- Salesforce reporting tools.
-
-**Developer Persona:** UI
-
----
-
-### User Story 2.3 (QA)
-**As** a QA engineer,
-**I want** to test notification delivery and dashboard/report accuracy,
-**so that** all stakeholders receive timely and correct information.
-
-**Acceptance Criteria / Scenarios:**
-- Scenario 1: Simulate approval triggers and verify notifications.
-- Scenario 2: Validate dashboard data matches approval history.
-
-**DoR:**
-- Test data and notification endpoints.
-
-**DoD:**
-- All notification and reporting tests pass.
-
-**Business Value:**
-- Ensures reliable communication and reporting.
-
-**Dependencies:**
-- Test environment.
-
-**Developer Persona:** QA
-
----
-
-## Feature 3: Renewal Auto-Approval Logic (Placeholder)
-
-### User Story 3.1 (BE)
-**As** a backend developer,
-**I want** to propose and implement logic for auto-approving standard renewals with high TCV but no additional discount,
-**so that** Finance is not burdened with unnecessary approvals.
-
-**Acceptance Criteria / Scenarios:**
-- Scenario 1: Renewal with TCV > $500K and 0% additional discount auto-approves.
-- Scenario 2: Renewal with non-standard terms triggers Finance approval.
-
-**DoR:**
-- Renewal logic requirements finalized.
-
-**DoD:**
-- Logic implemented and tested.
-
-**Business Value:**
-- Reduces Finance workload on standard renewals.
-
-**Dependencies:**
-- Renewal identification in Opportunity data.
-
-**Developer Persona:** BE
-
----
+- Existing Salesforce Opportunity approval process.
+- Account field `Strategic_Account__c`.
+- TCV field and currency configuration.
+- CRO approver configuration.
+- Salesforce approval history.
 
 **References:**
-- Meeting_Note_02_High_Value_Deal 2.md
+- [1] Meeting_Note_03_Strategic_Account.md  
+  > Strategic Account approval threshold and trigger rules
+- [2] Meeting_Note_01_Discount_Depth 2.md  
+  > Conditional approval routing patterns
+
+---
+
+# 1.1 STORY: Orchestrate Conditional Deal Desk and CRO Approval Sequence
+
+**Developer Persona:** BE
+
+**User Story:**  
+As a Deal Desk Manager, I want the existing Deal Desk approval rule and the new CRO approval rule to execute conditionally and in the correct order, so that Strategic Account governance does not change my current discount-review behavior.
+
+**Business Value:**  
+Maintains current commercial controls while ensuring CRO approval is added only where required and never bypasses a required Deal Desk review.
+
+**Scenarios:**
+
+**Scenario: Happy path — Both Deal Desk and CRO approvals apply**  
+Given the Opportunity belongs to a Strategic Account  
+And the TCV is greater than $100,000  
+And the discount is greater than 10%  
+When the Opportunity is submitted  
+Then the Opportunity is routed first to Deal Desk  
+And the CRO approval request is not actionable before Deal Desk approves  
+And after Deal Desk approves, the request is routed to the CRO.
+
+**Scenario: Happy path — CRO approval applies without Deal Desk**  
+Given the Opportunity belongs to a Strategic Account  
+And the TCV is greater than $100,000  
+And the discount is 10% or less  
+When the Opportunity is submitted  
+Then the Opportunity is routed directly to the CRO  
+And no Deal Desk approval request is created.
+
+**Scenario: Boundary — Deal Desk rejects**  
+Given both Deal Desk and CRO approval conditions apply  
+When Deal Desk rejects the Opportunity  
+Then the CRO approval request is not created or activated  
+And the Opportunity is returned to the rep with the Deal Desk comments.
+
+**Scenario: Boundary — Non-Strategic Account**  
+Given the Opportunity belongs to an Account where `Strategic_Account__c = false`  
+And the discount is greater than 10%  
+When the Opportunity is submitted  
+Then the existing Deal Desk process operates as it does today  
+And no Strategic Account CRO approval is added.
+
+**Scenario: Error — Approval chain cannot determine predecessor state**  
+Given both Deal Desk and CRO conditions appear to apply  
+When the system cannot determine whether Deal Desk approval is required or complete  
+Then the Opportunity is not routed to CRO prematurely  
+And the submission is flagged for administrative resolution  
+And an error is logged.
+
+**Definition of Ready (DoR):**
+- Existing Deal Desk threshold is confirmed as strictly greater than 10%.
+- Approval precedence rules are approved by Sales Operations and Deal Desk.
+- The direct-CRO path and sequential path are separately testable.
+- Rejection behavior is defined for each approval tier.
+
+**Definition of Done (DoD):**
+- Both routing paths are implemented and demonstrable.
+- CRO cannot approve before required Deal Desk approval.
+- Deal Desk rejection prevents CRO routing.
+- Non-Strategic Account behavior passes regression testing.
+- Approval history clearly identifies each approval tier and decision order.
+- Automated tests cover all combinations of Strategic status, TCV, discount, and Deal Desk outcome.
+
+**Dependencies:**
+- Feature 1.1 Strategic Account trigger evaluation.
+- Existing Deal Desk approval process.
+- Salesforce approval-process predecessor configuration.
+- Approval history and audit logging.
+
+**References:**
+- [1] Meeting_Note_03_Strategic_Account.md  
+  > Conditional predecessor and sequential Deal Desk/CRO routing
+- [2] Meeting_Note_01_Discount_Depth 2.md  
+  > Conditional sequential approval routing
+
+---
+
+# 1.1 STORY: Preserve Submission-Time Routing Decisions
+
+**Developer Persona:** BE
+
+**User Story:**  
+As a Sales Operations administrator, I want approval routing to be determined when an Opportunity is submitted, so that later changes to the Strategic Account flag do not alter an in-flight approval request.
+
+**Business Value:**  
+Creates predictable governance, prevents mid-process routing changes, and preserves an auditable record of the conditions used for the approval decision.
+
+**Scenarios:**
+
+**Scenario: Happy path — Strategic flag remains unchanged**  
+Given an Opportunity is submitted while its Account is Strategic  
+And the Opportunity meets the CRO TCV threshold  
+When the approval process is active  
+Then the Opportunity remains in the CRO approval path  
+And the routing decision is retained in approval history.
+
+**Scenario: Boundary — Account becomes Strategic after submission**  
+Given an Opportunity is submitted while its Account is not Strategic  
+And the Opportunity is not routed to CRO  
+When Sales Ops later changes `Strategic_Account__c` to true  
+Then the in-flight approval request is not retroactively routed to CRO  
+And the new Strategic status applies only to a subsequent Opportunity submission.
+
+**Scenario: Boundary — Strategic flag is removed after submission**  
+Given an Opportunity is submitted while its Account is Strategic  
+And the Opportunity is routed to CRO  
+When Sales Ops later changes `Strategic_Account__c` to false  
+Then the existing CRO approval request remains active  
+And the approval chain is not removed or downgraded.
+
+**Scenario: Error — Account data changes during submission**  
+Given the Strategic flag changes concurrently with submission  
+When the system evaluates routing  
+Then one deterministic submission-time value is used  
+And the selected value and routing outcome are auditable  
+And the system does not create duplicate approval requests.
+
+**Definition of Ready (DoR):**
+- Submission-time evaluation behavior is approved.
+- The required audit fields or approval-history evidence are identified.
+- Concurrency and duplicate-submission behavior are defined.
+- Test accounts and Opportunities are available.
+
+**Definition of Done (DoD):**
+- Routing is immutable for each in-flight approval request.
+- Post-submission Strategic flag changes affect only later submissions.
+- Concurrent updates do not produce duplicate or contradictory approval chains.
+- Approval history identifies the routing outcome at submission.
+- Regression and concurrency-oriented tests pass.
+
+**Dependencies:**
+- Strategic Account trigger evaluation.
+- Salesforce approval submission transaction behavior.
+- Account field-level security and Sales Ops maintenance process.
+- Approval history reporting.
+
+**References:**
+- [1] Meeting_Note_03_Strategic_Account.md  
+  > Routing determined at submission time
+- [2] Meeting_Note_01_Discount_Depth 2.md  
+  > Approval request validation and auditability
+
+---
+
+# Remaining Feature Structure
+
+## Feature 1.2: CRO Delegation, SLA Escalation, and Notifications
+
+**Definition of Done (DoD):**
+- CRO approval has a 72-hour SLA.
+- SLA breach automatically escalates to the CRO’s Chief of Staff.
+- Chief of Staff can approve only Opportunities below $500K TCV.
+- Opportunities at or above $500K cannot be approved by the Chief of Staff.
+- CRO and delegated approver receive Email and Slack DM notifications.
+- Approval, escalation, delegation, and notification events are auditable.
+- Rejection comments are returned to the rep.
+- Resubmission restarts the full approval chain.
+
+## Feature 1.3: Strategic Account Approval Reporting and Governance
+
+**Definition of Done (DoD):**
+- Quarterly reporting includes every Strategic Account deal, approver decisions, and cycle time.
+- Monthly reporting supports internal Sales leadership review.
+- Reports use Salesforce approval history.
+- Reports distinguish direct CRO routing from Deal Desk-then-CRO routing.
+- Rejections, resubmissions, escalations, and final decisions are reportable.
+- Sales Ops-only ownership of `Strategic_Account__c` is preserved.
+- Reps retain view-only access to the Strategic Account indicator.
+
+Which should be expanded next: **Feature 1.2 (delegation, SLA, notifications)** or **Feature 1.3 (reporting and governance)**?
