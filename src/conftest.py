@@ -1,9 +1,3 @@
-"""Shared pytest fixtures."""
-import pytest
-from fastapi.testclient import TestClient
-from calculator.main import create_app
+"""Shared placeholder for non-Salesforce local test configuration."""
 
-@pytest.fixture
-def client() -> TestClient:
-    """Return a test client."""
-    return TestClient(create_app())
+# TODO: Add fixture/configuration helpers only for non-PHI unit tests.
