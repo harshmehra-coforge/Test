@@ -1,0 +1,12 @@
+<!--
+  StrategicAccountApproval.process-meta.xml
+  Salesforce Approval Process metadata for Strategic Account Opportunities
+  TODO: Complete with actual Salesforce process XML
+-->
+<ApprovalProcess xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- TODO: Define entry criteria: Strategic_Account__c == TRUE AND TCV > $100K -->
+    <!-- TODO: Step 1: Deal Desk if Discount > 10% -->
+    <!-- TODO: Step 2: CRO approval (Meera) -->
+    <!-- TODO: Delegation/escalation logic handled by Apex -->
+    <!-- TODO: Lock routing at submission -->
+</ApprovalProcess>
