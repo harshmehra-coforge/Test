@@ -1,0 +1,16 @@
+<template>
+    <lightning-card title="Missed dose" icon-name="standard:medication">
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}><lightning-spinner alternative-text="Loading"></lightning-spinner></template>
+            <lightning-input type="datetime" label="Dose date and time" value={doseDateTime} onchange={handleDateChange} required></lightning-input>
+            <lightning-input label="Medication" value={medicationLabel} readonly></lightning-input>
+            <lightning-combobox label="Reason" value={reason} options={reasonOptions} onchange={handleReasonChange} required></lightning-combobox>
+            <lightning-textarea label="Notes" value={notes} maxlength="500" onchange={handleNotesChange}></lightning-textarea>
+            <div class="slds-m-top_medium slds-grid slds-grid_align-end">
+                <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
+                <lightning-button class="slds-m-left_small" variant="brand" label="Save" onclick={handleSave} disabled={isSaving}></lightning-button>
+            </div>
+            <template if:true={errorMessage}><p class="slds-text-color_error slds-m-top_small">{errorMessage}</p></template>
+        </div>
+    </lightning-card>
+</template>
