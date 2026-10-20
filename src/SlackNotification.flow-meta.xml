@@ -1,0 +1,8 @@
+<!--
+  SlackNotification.flow-meta.xml
+  Lightning Flow for sending Slack notifications
+  TODO: Complete with actual Salesforce Flow XML
+-->
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- TODO: Integrate with Slack connector, send DM to CRO/delegate -->
+</Flow>
