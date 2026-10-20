@@ -1,240 +1,121 @@
 # Build Plan — Missed Dose Logging & Adherence Alerts
 
-## 1. Scope and delivery boundary
+## Scope and source
 
-This plan translates the 22 July 2026 discovery meeting into an implementation plan for **Phase 1** of CarePath Plus's missed-dose logging and adherence alerting capability.
+This scaffold is derived from the authoritative Salesforce Health Cloud TSD (`Architect-dynamic-agent/TSD.md`) and the intake meeting note. It covers Phase 1 structured missed-dose capture, patient-scoped adherence calculation, Flow-based alerting, PHI audit integration, and the daily 06:30 Asia/Kolkata re-evaluation. Patient outreach, dispense reconciliation, hospitalization pause logic, cross-widget signals, and supervisor-override UX remain out of scope.
 
-### In scope
+## Chosen stack and rationale
 
-- Custom Salesforce LWC `doseLogQuickEntry` embedded on the Health Cloud Care Plan Lightning Record Page.
-- Structured creation of `Dose_Log__c` records from a care manager or assigned pharmacist's workflow.
-- Server-side validation, audit logging, and rolling 30-, 60-, and 90-day adherence calculation through Apex.
-- Post-insert threshold evaluation and Task creation through a record-triggered Flow.
-- Daily scheduled re-evaluation at 06:30 AM IST for patients with a `Dose_Log__c` entry in the previous 45 days.
-- Task deduplication, severity precedence, and comments on existing open Tasks.
-- Compliance controls for `PHI_Access_Log__c`, curated Reason values, back-dating, and edit windows.
+- **Platform:** Salesforce Health Cloud, deployed as Salesforce DX metadata. This preserves PHI inside the existing security boundary and uses the Care Plan Lightning Record Page as the primary work surface.
+- **UI:** Lightning Web Components, specifically `doseLogQuickEntry`, for single-click launch, keyboard-first entry, record-page placement, and fast refresh.
+- **Service layer:** Apex `with sharing`, DTOs, selectors, and service classes. Apex is authoritative for authorization, CRUD/FLS, date/Notes validation, transaction handling, adherence calculations, and audit writes.
+- **Automation:** Record-triggered and scheduled Salesforce Flow for threshold orchestration, Task routing, deduplication, comments, and operational fault paths. Invocable Apex performs calculation; Flow owns visible routing decisions.
+- **Storage:** Existing `Dose_Log__c`, `Dose_Schedule__c`, `CarePlan`, `Case`, `Task`, and `PHI_Access_Log__c` objects. Exact field API names are intentionally isolated in selectors/configuration until org schema confirmation.
+- **Testing:** Apex tests, LWC Jest tests, and Flow metadata with a mirrored test skeleton. CI uses Salesforce CLI validation and test execution.
+- **Deployment:** Salesforce DX source format with `sfdx-project.json`, package directories, permission set, page component metadata, and GitHub Actions validation.
 
-### Explicitly out of scope
+## Module/service breakdown
 
-- Patient-facing SMS, portal, or other outreach.
-- Pharmacy dispense reconciliation.
-- Hospitalization-driven adherence pauses.
-- Supervisor override UX; administrator/manual DML remains acceptable for Phase 1.
-- Cross-widget adherence signals with Financial Assistance or Refill workstreams.
-
-## 2. Chosen platform and rationale
-
-| Concern | Choice | Rationale |
+| TSD component | Scaffold module | Responsibility |
 |---|---|---|
-| Application platform | Salesforce Health Cloud | The meeting identifies Health Cloud Care Plans, Cases, Tasks, Flows, LWC, Apex, and custom objects as the target runtime. |
-| User interface | Lightning Web Component (`doseLogQuickEntry`) | Supports a single-click, tab-order-friendly quick-entry surface directly on the Care Plan record page without navigation. |
-| Server layer | Apex service class | Centralizes insert validation, audit-log writing, edit authorization, and adherence calculation; server enforcement prevents UI bypass. |
-| Persistence | Existing/custom Salesforce objects: `Dose_Log__c`, `Dose_Schedule__c`, `PHI_Access_Log__c` | Reuses the existing care-plan dose schedule and established PHI audit trail. Schema confirmation is an open dependency. |
-| Alert orchestration | Salesforce Record-Triggered Flow | The agreed design supports Get Records + Decision logic for open-task lookup and threshold severity handling without an Apex trigger. |
-| Scheduled processing | Salesforce Scheduled-Triggered Flow | Runs daily at 06:30 AM IST and re-evaluates the recent activity cohort rather than recalculating all approximately 4,200 active patients. |
-| Testing | Salesforce Apex tests, LWC Jest tests, Flow/UAT validation | Covers server contracts, UI interaction, Flow rules, access controls, and the six-care-manager-per-hub UAT cohort. |
-| Delivery | Salesforce DX source format, scratch/sandbox deployment pipeline | Enables versioned metadata, repeatable validation, and alignment with the Benefit Summary widget release train. |
+| `doseLogQuickEntry` | `force-app/main/default/lwc/doseLogQuickEntry` | Form state, client validation, context display, submission and refresh wiring. |
+| `DoseLogService` | `classes/DoseLogService.cls` | Public Apex contract: context, create, adherence, and update operations. |
+| DTOs | `DoseLogDtos.cls` | Typed request/response wrappers crossing the LWC/Apex boundary. |
+| Data access | `DoseLogSelector.cls`, `DoseScheduleSelector.cls` | Bounded, relationship-scoped queries; exact org fields are centralized here. |
+| Adherence algorithm | `AdherenceCalculator.cls` | 30/60/90-day windows, denominator handling, duplicate warnings, and consecutive sequence contract. |
+| Alert calculation | `AdherenceThresholdEvaluator.cls` | Invocable/Flow-facing breach evaluation and severity ordering; no Task DML. |
+| PHI audit | `PhiAuditWriter.cls` | Adapter around the approved existing `PHI_Access_Log__c` helper/Event pattern. |
+| Event automation | `DoseLog_AfterInsert_AlertEvaluation.flow-meta.xml` | Invokes evaluator and routes/de-duplicates Tasks through Flow. |
+| Daily automation | `Daily_Adherence_Reevaluation.flow-meta.xml` | 06:30 Asia/Kolkata candidate processing and retry/fault path placeholder. |
+| Security/config | `DoseLogPermissionSet.permissionset-meta.xml`, custom metadata placeholder | Least-privilege access and configurable thresholds/wording. |
 
-## 3. Component and module breakdown
-
-### 3.1 `doseLogQuickEntry` LWC
-
-- Expose the current Care Plan record ID and derive the active medication from the Care Plan.
-- Default Dose Date/Time to now; permit back-dating only within the previous 14 days.
-- Present the curated Reason values: `Forgot`, `Side effects`, `Cost / access`, `Feeling better`, `Travel`, `Hospitalization`, and `Other` (subject to clinical confirmation).
-- Accept optional Notes with a 500-character maximum and an explicit PHI-scrub warning.
-- Provide loading, success, validation-error, server-error, and back-date error states.
-- Use accessible labels, keyboard/tab ordering, and a single-click open action.
-- Render 30-, 60-, and 90-day adherence values by calling the Apex service on widget load.
-
-### 3.2 Apex service and domain contracts
-
-- `DoseLogService`: public methods for creating a log, retrieving widget data, and enforcing edit behavior.
-- `DoseLogValidator`: validates active medication association, required fields, date range, Notes length, and edit-window rules.
-- `AdherenceCalculator`: calculates `(scheduled doses - missed doses) / scheduled doses * 100` for 30-, 60-, and 90-day rolling windows using `Dose_Schedule__c` and `Dose_Log__c`.
-- `PhiAuditLogWriter`: writes user ID, patient ID, timestamp, and `DOSE_LOG_ENTRY` to the established `PHI_Access_Log__c` pattern.
-- `DoseLogSelector` / query boundary: isolates SOQL and supports selective queries for the patient and rolling windows.
-- Enforce sharing, CRUD, and field-level security according to the org's established security model.
-
-### 3.3 Record-triggered alert Flow
-
-Trigger after `Dose_Log__c` insertion. Evaluate thresholds in severity order:
-
-1. 30-day adherence below 60%: High priority Task for Dr. Kunal / clinical pharmacist and a copy for the primary care manager.
-2. Three or more consecutive missed doses in seven days: High priority Task for the primary care manager.
-3. 30-day adherence below 80%: Normal priority Task for the primary care manager.
-
-Apply these controls:
-
-- At most one adherence Task per patient per 24 hours, regardless of the number of breached thresholds.
-- Highest-severity breach wins when multiple thresholds are breached together.
-- If an open Task exists for the same patient and threshold type, do not create another; append a comment to the existing Task.
-- Relate Tasks to the relevant Case and patient record, and assign the agreed owner.
-
-### 3.4 Scheduled daily re-evaluation Flow
-
-- Run at 06:30 AM IST.
-- Find patients with at least one `Dose_Log__c` entry during the prior 45 days.
-- Recalculate the 30-day rolling adherence and apply the same threshold and deduplication rules.
-- Keep the scope selective to avoid a full-patient-base recalculation.
-- Confirm Flow limits and query selectivity in a representative sandbox before UAT.
-
-### 3.5 Salesforce metadata and configuration
-
-- Confirm or add `Dose_Log__c` fields and relationships, including dose date/time, medication, reason, notes, Care Plan, patient, and audit-relevant relationships.
-- Confirm the current `Dose_Schedule__c` schema and schedule semantics with the Salesforce Technical Lead.
-- Configure the Reason picklist as a controlled value set; do not replace it with unrestricted free text.
-- Configure custom metadata or equivalent constants for threshold values, lookback windows, owner routing, and deduplication intervals where practical.
-- Place the LWC on the Care Plan Lightning Record Page and expose only the required user actions.
-
-## 4. Proposed source and metadata tree
-
-The following is the target Salesforce DX structure for the implementation. It is a planning tree only; this request intentionally produces `PLAN.md` and no source scaffold files.
+## Target folder structure
 
 ```text
 force-app/main/default/
   classes/
-    DoseLogService.cls                         # Apex facade for create, read, and edit operations
-    DoseLogService.cls-meta.xml                # Apex class metadata
-    DoseLogValidator.cls                       # Server-side field, date, and authorization validation
-    DoseLogValidator.cls-meta.xml              # Apex class metadata
-    AdherenceCalculator.cls                    # Rolling-window adherence calculation contract
-    AdherenceCalculator.cls-meta.xml           # Apex class metadata
-    PhiAuditLogWriter.cls                      # PHI_Access_Log__c audit write boundary
-    PhiAuditLogWriter.cls-meta.xml             # Apex class metadata
-    DoseLogSelector.cls                        # Selective SOQL/query boundary
-    DoseLogSelector.cls-meta.xml               # Apex class metadata
-    DoseLogServiceTest.cls                     # Apex service and validation tests
-    DoseLogServiceTest.cls-meta.xml            # Apex test metadata
-    AdherenceCalculatorTest.cls                # Rolling-window calculation tests
-    AdherenceCalculatorTest.cls-meta.xml       # Apex test metadata
-  lwc/
-    doseLogQuickEntry/
-      doseLogQuickEntry.html                   # Accessible quick-entry and adherence display markup
-      doseLogQuickEntry.js                     # UI state, Apex calls, validation, and events
-      doseLogQuickEntry.js-meta.xml            # Care Plan record-page exposure
-      doseLogQuickEntry.css                    # Scoped layout and state styling
-      __tests__/
-        doseLogQuickEntry.test.js              # Jest interaction and accessibility skeleton
+    AdherenceCalculator.cls                 # Rolling adherence and sequence calculation contract
+    AdherenceCalculator.cls-meta.xml
+    AdherenceThresholdEvaluator.cls        # Flow-invocable threshold evaluation
+    AdherenceThresholdEvaluator.cls-meta.xml
+    DoseLogDtos.cls                         # Serializable request/response DTOs
+    DoseLogDtos.cls-meta.xml
+    DoseLogSelector.cls                     # Bounded Dose_Log__c selector
+    DoseLogSelector.cls-meta.xml
+    DoseLogService.cls                      # Main with-sharing application service
+    DoseLogService.cls-meta.xml
+    DoseScheduleSelector.cls                # Care Plan schedule selector
+    DoseScheduleSelector.cls-meta.xml
+    PhiAuditWriter.cls                      # PHI audit adapter
+    PhiAuditWriter.cls-meta.xml
   flows/
-    Dose_Log_After_Insert_Alert_Evaluation.flow-meta.xml # Threshold and Task deduplication Flow
-    Dose_Log_Daily_Adherence_Reevaluation.flow-meta.xml  # 06:30 IST scheduled Flow
-  objects/
-    Dose_Log__c/
-      fields/                                  # Dose date/time, medication, reason, notes, relationships
-      Dose_Log__c.object-meta.xml              # Object definition and sharing settings
-    Dose_Schedule__c/
-      Dose_Schedule__c.object-meta.xml         # Existing schedule schema reference/changes if required
-    PHI_Access_Log__c/
-      PHI_Access_Log__c.object-meta.xml        # Existing audit object reference
-  flexipages/
-    Care_Plan_Record_Page.flexipage-meta.xml   # Placement of doseLogQuickEntry on the Care Plan page
+    DoseLog_AfterInsert_AlertEvaluation.flow-meta.xml  # Post-insert threshold orchestration
+    Daily_Adherence_Reevaluation.flow-meta.xml         # Daily targeted re-evaluation
+  lwc/doseLogQuickEntry/
+    doseLogQuickEntry.html                   # Accessible quick-entry layout
+    doseLogQuickEntry.js                     # UI state and Apex calls
+    doseLogQuickEntry.js-meta.xml            # Care Plan record-page exposure
   permissionsets/
-    CarePath_Adherence_Logger.permissionset-meta.xml # Least-privilege access for permitted users
-  customMetadata/
-    Adherence_Thresholds.*.md-meta.xml         # Optional configurable threshold and routing values
-  labels/
-    CustomLabels.labels-meta.xml               # User-facing validation and error messages
-  flows/
-    README.md                                  # Flow ownership, limits, and deployment notes
-config/
-  project-scratch-def.json                     # Salesforce DX scratch-org definition
-  permission-set-assumptions.md                # Environment-specific access prerequisites
-scripts/
-  deploy-validate.sh                           # Validation-only deployment entrypoint
-  deploy-release.sh                             # Controlled deployment entrypoint
-force-app/main/default/lwc/
-  README.md                                    # LWC development and Jest conventions
-.github/workflows/
-  validate.yml                                 # Salesforce metadata validation and test stub
-README.md                                      # Project setup, deployment, and test instructions
-sfdx-project.json                              # Salesforce DX project configuration
-PLAN.md                                        # This implementation plan
+    DoseLogPermissionSet.permissionset-meta.xml        # Feature access contract
+  layouts/
+    Dose_Log__c-Dose Log Layout.layout-meta.xml        # Admin layout placeholder
+  objects/Dose_Log__c/
+    fields/.gitkeep                          # Schema additions pending org confirmation
+  package.xml                                # Metadata deployment manifest
+config/project-scratch-def.json              # Scratch org baseline
+scripts/apex/seed-dose-log-config.apex      # Non-PHI development setup placeholder
+force-app/main/default/classes/tests/
+  AdherenceCalculatorTest.cls                # Calculator unit test skeleton
+  AdherenceCalculatorTest.cls-meta.xml
+  DoseLogServiceTest.cls                    # Service/security boundary test skeleton
+  DoseLogServiceTest.cls-meta.xml
+  AdherenceThresholdEvaluatorTest.cls       # Threshold precedence test skeleton
+  AdherenceThresholdEvaluatorTest.cls-meta.xml
+tests/lwc/doseLogQuickEntry/
+  doseLogQuickEntry.test.js                  # Jest test skeleton
+.github/workflows/validate.yml               # Salesforce CLI validation stub
+sfdx-project.json                            # Salesforce DX project config
+README.md                                     # Setup, deployment, and implementation notes
+.env.example                                  # Non-secret local variables
+Dockerfile                                    # Optional Salesforce CLI container
 ```
 
-## 5. Dependency diagram
+## Build order and milestones
 
-The diagram renderer was unavailable in this environment, so the valid Mermaid source is retained below for rendering by the consuming documentation pipeline.
+1. **Schema and compliance confirmation (3 days):** Confirm API names/relationships for `Dose_Log__c` and `Dose_Schedule__c`, the approved `PHI_Access_Log__c` write mechanism, Task recipient relationships, and final Reason values.
+2. **Metadata foundation (4 days):** Add/confirm fields, permission set, object layout, Care Plan page placement, and threshold/custom metadata. Do not enable the feature broadly yet.
+3. **Apex data and service layer (7 days):** Implement selectors, DTOs, server-side validation, CRUD/FLS checks, audit transaction boundary, bounded adherence calculation, update window, and unit tests.
+4. **LWC experience (5 days):** Implement default/populated/back-date/error states, accessibility, submit lock, non-PHI error handling, and Jest tests.
+5. **Flow automation (5 days):** Implement after-insert evaluator invocation, severity selection, 24-hour/open-task suppression, comments, recipient routing, scheduled Flow, and fault paths.
+6. **Integration and hardening (5 days):** Validate LWC/Apex/Flow contracts, query selectivity, governor limits, audit completeness, load behavior, and security personas.
+7. **UAT and release (7 days):** Validate with six care managers, evidence the under-15-second goal, pilot through permission-set assignment, deploy through the Benefit Summary release train, and retain a time-boxed legacy fallback.
+
+## Key risks and open questions
+
+- Exact Salesforce API names and relationship cardinality are not supplied; selectors isolate this uncertainty and must be completed before implementation.
+- Schedule recurrence/occurrence semantics must be confirmed, especially for non-daily medication schedules and `CONSEC-3`.
+- The approved synchronous audit helper or Platform Event pattern is unresolved; `PhiAuditWriter` is an explicit adapter seam.
+- Recipient identity for Dr. Kunal Bhatt and primary care managers, Task Case association, wording, and due-date policy need org confirmation.
+- Flow governor limits and race behavior around duplicate suppression require production-like volume testing.
+- Zero-denominator behavior, strict threshold boundaries, duplicate dose occurrences, and edit effects must be approved as contract tests.
+
+## Dependency diagram
+
+![Diagram](https://diagram.invalid/rendering-unavailable)
 
 ```mermaid
-flowchart TD
-    UI[Care Plan Record Page<br/>doseLogQuickEntry LWC] --> SVC[Apex DoseLogService]
-    SVC --> VALIDATE[Server validation<br/>14-day back-date and edit window]
-    SVC --> DL[Dose_Log__c]
-    SVC --> AUDIT[PHI_Access_Log__c]
-    SVC --> CALC[AdherenceCalculator]
-    CALC --> SCHEDULE[Dose_Schedule__c]
-    CALC --> DL
-    DL --> AFTER[After-insert Flow<br/>threshold evaluation]
-    AFTER --> TASK[Case Tasks<br/>severity and deduplication]
-    DAILY[Daily Scheduled Flow<br/>06:30 AM IST] --> REEVAL[Recent-patient re-evaluation]
-    REEVAL --> CALC
-    REEVAL --> TASK
+graph TD
+  U[Care Manager or Assigned Pharmacist] --> LWC[doseLogQuickEntry LWC]
+  LWC --> S[DoseLogService Apex with sharing]
+  S --> CP[CarePlan and Dose_Schedule__c]
+  S --> DL[Dose_Log__c]
+  S --> AUD[PHI_Access_Log__c]
+  DL --> F1[DoseLog_AfterInsert_AlertEvaluation Flow]
+  F1 --> E[AdherenceThresholdEvaluator Invocable Apex]
+  F1 --> T[Salesforce Tasks linked to Case]
+  SF[Daily_Adherence_Reevaluation Scheduled Flow] --> E
+  E --> CP
+  E --> DL
 ```
 
-## 6. Build order and milestones
-
-### Milestone 0 — Discovery closure and schema confirmation
-
-1. Confirm `Dose_Log__c` and `Dose_Schedule__c` fields, relationships, data types, and schedule interpretation by 24 July.
-2. Confirm whether PHI audit writes use an existing helper class or Platform Event pattern.
-3. Finalize the Reason values and determine whether `Adverse event` belongs in this picklist or the existing Adverse Event Quick Logger.
-4. Confirm Case-to-patient and primary-care-manager ownership relationships.
-5. Confirm BRD sign-off and Steering Committee alignment by 29 July.
-
-### Milestone 1 — Metadata and Apex contracts
-
-1. Establish Salesforce DX project and permission boundaries.
-2. Add or confirm the `Dose_Log__c` metadata and relationships without duplicating existing objects.
-3. Implement typed Apex service, selector, validator, audit writer, and calculator contracts.
-4. Add Apex tests for valid insert, required fields, active-medication lookup, 14-day back-date rejection, 500-character Notes limit, edit authorization, audit write, and all three rolling windows.
-5. Validate sharing, CRUD, and field-level security with representative care-manager and pharmacist profiles.
-
-### Milestone 2 — LWC quick-entry experience
-
-1. Build the single-click Care Plan component and accessible form layout.
-2. Wire active medication retrieval, default timestamp, curated Reason values, Notes limit, and server calls.
-3. Implement loading, success, validation, stale-record, and service-error states.
-4. Render rolling adherence after load and refresh it after a successful insert.
-5. Add Jest tests for keyboard navigation, defaults, validation, server errors, and successful submission.
-
-### Milestone 3 — Alerting Flows
-
-1. Build the after-insert Flow with severity precedence.
-2. Add seven-day consecutive-missed-dose evaluation.
-3. Add open-Task lookup by patient and threshold type.
-4. Add 24-hour patient-level deduplication and existing-Task comment behavior.
-5. Build the scheduled 06:30 AM IST Flow for the previous-45-day cohort.
-6. Test Flow limits, bulk behavior, time-zone behavior, ownership, and Task relationships.
-
-### Milestone 4 — Record-page integration and system validation
-
-1. Add the component to the Care Plan Lightning Record Page.
-2. Validate with oncology and autoimmune therapy schedules, including 2 consecutive missed doses and 3+ missed doses in 30 days.
-3. Run security and PHI review, including Notes handling and audit trail completeness.
-4. Validate no alert is duplicated when several thresholds breach together.
-5. Deploy to UAT and conduct the six-care-manager cohort sessions (three per hub) during the week of 4 August.
-
-### Milestone 5 — Release readiness
-
-1. Resolve UAT findings and confirm operational ownership of Task queues.
-2. Complete release validation alongside the Benefit Summary widget train.
-3. Confirm go-live checklist, rollback metadata, monitoring, and admin runbook.
-4. Target production go-live by end of Q3 FY26.
-
-## 7. Key risks and open questions
-
-- **Schema uncertainty:** Existing `Dose_Log__c`, `Dose_Schedule__c`, and `PHI_Access_Log__c` definitions must be confirmed before metadata or Apex is finalized.
-- **Schedule semantics:** The calculator depends on an unambiguous definition of scheduled doses for each rolling window, including pauses, variable schedules, and missing schedule data.
-- **Flow limits:** The scheduled cohort and Task lookup/comment logic could approach Salesforce Flow query or element limits; bulk and worst-case tests are required.
-- **Time zones:** The 06:30 AM IST schedule and date/time window boundaries need explicit org-time-zone confirmation.
-- **Task ownership:** The source of primary care manager and Dr. Kunal's user/queue assignment must be stable and queryable.
-- **Threshold precedence:** The agreed severity ordering must be encoded consistently between post-insert and scheduled flows.
-- **Consecutive-dose logic:** The definition of consecutive misses across scheduled-dose gaps requires clinical and data-model confirmation.
-- **PHI in Notes:** Notes are optional free text and require quarterly PHI scrub ownership, retention, and reporting confirmation.
-- **Edit enforcement:** The 24-hour self-edit rule must distinguish the entry creator from supervisors/admins while preserving read-only behavior after the window.
-- **Performance:** On-demand calculation is required for the current scale; profiling should confirm the widget remains responsive for the largest patient histories.
-
-## 8. Definition of implementation readiness
-
-Implementation can begin when the schema, audit-write pattern, Reason values, schedule semantics, Task ownership model, and BRD/Steering Committee approvals are confirmed. The implementation is ready for UAT when the LWC is placed on the Care Plan page, Apex validation and audit tests pass, both Flows pass bulk/deduplication tests, and the six nominated care managers can complete representative entries within the 15-second target.
+The diagram renderer was unavailable in the execution environment; the source remains included for repository rendering.
