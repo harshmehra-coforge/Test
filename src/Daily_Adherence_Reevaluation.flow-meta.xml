@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="UTF-8"?><Flow xmlns="http://soap.sforce.com/2006/04/metadata"><apiVersion>64.0</apiVersion><label>Daily Adherence Re-evaluation</label><processType>AutoLaunchedFlow</processType><status>Draft</status><!-- TODO: Configure 06:30 Asia/Kolkata schedule, 45-day candidate selection, bounded processing, retry checkpoint, and fault reporting. --></Flow>
