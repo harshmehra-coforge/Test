@@ -1,0 +1,11 @@
+name: Salesforce Validate
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: sfdx-actions/setup-sfdx@v1
+      - run: sf project deploy start --source-dir force-app --dry-run --target-org "$SF_TARGET_ORG" --test-level RunLocalTests
+        env:
+          SF_TARGET_ORG: ${{ secrets.SF_TARGET_ORG }}
