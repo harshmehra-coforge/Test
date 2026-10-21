@@ -1,0 +1,8 @@
+<!--
+  OpportunityFields.object
+  Custom fields for Opportunity: approval stage, discount %, status, approvers, SLA timestamps, rejection reason, audit log ref.
+  (Salesforce object XML stub)
+-->
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- TODO: Define fields for approval stage, discount percent, status, approvers, SLA timestamps, rejection reason, audit log reference -->
+</CustomObject>
