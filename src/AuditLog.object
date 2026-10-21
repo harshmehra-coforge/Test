@@ -1,0 +1,8 @@
+<!--
+  AuditLog.object
+  Custom object for immutable audit log entries.
+  (Salesforce object XML stub)
+-->
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- TODO: Define fields for opportunity ref, event type, timestamp, details, user -->
+</CustomObject>
