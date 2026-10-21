@@ -1,0 +1,7 @@
+<!-- MissedDose_ScheduledCheck.flow-meta.xml -->
+<!-- Scheduled Flow for Daily Adherence Reevaluation -->
+<FlowDefinition>
+    <!-- TODO: Scheduled daily at 6:30 AM IST -->
+    <!-- TODO: Select patients with Dose_Log__c in past 45 days -->
+    <!-- TODO: Recalculate 30-day adherence, trigger alerts if thresholds breached -->
+</FlowDefinition>
