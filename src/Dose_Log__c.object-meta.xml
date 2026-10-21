@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Dose Log</label>
+    <pluralLabel>Dose Logs</pluralLabel>
+    <nameField label="Dose Log Name" type="AutoNumber" displayFormat="DL-{00000}"/>
+    <fields>
+        <!-- Patient (lookup Care Plan / Patient) -->
+        <field>
+            <fullName>Care_Plan__c</fullName>
+            <label>Care Plan</label>
+            <type>Lookup</type>
+            <referenceTo>CarePlan__c</referenceTo>
+            <required>true</required>
+        </field>
+        <!-- Dose Date/Time -->
+        <field>
+            <fullName>Dose_DateTime__c</fullName>
+            <label>Dose Date/Time</label>
+            <type>DateTime</type>
+            <required>true</required>
+        </field>
+        <!-- Medication (lookup) -->
+        <field>
+            <fullName>Medication__c</fullName>
+            <label>Medication</label>
+            <type>Lookup</type>
+            <referenceTo>Medication__c</referenceTo>
+            <required>true</required>
+        </field>
+        <!-- Reason (picklist) -->
+        <field>
+            <fullName>Reason__c</fullName>
+            <label>Reason</label>
+            <type>Picklist</type>
+            <valueSet>
+                <value>Forgot</value>
+                <value>Side effects</value>
+                <value>Cost / access</value>
+                <value>Feeling better</value>
+                <value>Travel</value>
+                <value>Hospitalization</value>
+                <value>Other</value>
+            </valueSet>
+            <required>true</required>
+        </field>
+        <!-- Notes (text, 500 chars) -->
+        <field>
+            <fullName>Notes__c</fullName>
+            <label>Notes</label>
+            <type>TextArea</type>
+            <length>500</length>
+            <required>false</required>
+        </field>
+    </fields>
+</CustomObject>
