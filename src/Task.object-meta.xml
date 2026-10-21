@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Extension for standard Task object if needed for custom fields/views -->
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Task</label>
+    <pluralLabel>Tasks</pluralLabel>
+    <nameField label="Task Name" type="Text"/>
+    <!-- TODO: Add custom fields/views if required for alerting -->
+</CustomObject>
