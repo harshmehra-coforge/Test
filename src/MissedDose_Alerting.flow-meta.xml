@@ -1,0 +1,8 @@
+<!-- MissedDose_Alerting.flow-meta.xml -->
+<!-- Record-triggered Flow for Missed Dose Alerting -->
+<FlowDefinition>
+    <!-- TODO: Trigger on Dose_Log__c after-insert -->
+    <!-- TODO: Evaluate adherence thresholds (30d <80%, 3+ missed in 7d, 30d <60%) -->
+    <!-- TODO: De-duplicate Tasks (one per patient per 24h, comment if open) -->
+    <!-- TODO: Create Task(s) with correct priority/assignee -->
+</FlowDefinition>
