@@ -1,9 +1,13 @@
 {
-  "orgName": "Strategic Approval Scaffold",
+  "orgName": "CarePath Plus Missed Dose",
   "edition": "Enterprise",
-  "features": ["EnableSetPasswordInApi"],
+  "features": ["HealthCloud"],
   "settings": {
-    "lightningExperienceSettings": {"enableS1DesktopEnabled": true},
-    "emailAdministrationSettings": {"emailSecurityCompliance": true}
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "healthCloudSettings": {
+      "enableHealthCloud": true
+    }
   }
 }
