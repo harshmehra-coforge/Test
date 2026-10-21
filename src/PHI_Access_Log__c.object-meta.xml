@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>PHI Access Log</label>
+    <pluralLabel>PHI Access Logs</pluralLabel>
+    <nameField label="PHI Access Log Name" type="AutoNumber" displayFormat="PHI-{00000}"/>
+    <fields>
+        <!-- User ID -->
+        <field>
+            <fullName>User__c</fullName>
+            <label>User</label>
+            <type>Lookup</type>
+            <referenceTo>User</referenceTo>
+            <required>true</required>
+        </field>
+        <!-- Patient ID -->
+        <field>
+            <fullName>Patient__c</fullName>
+            <label>Patient</label>
+            <type>Lookup</type>
+            <referenceTo>CarePlan__c</referenceTo>
+            <required>true</required>
+        </field>
+        <!-- Timestamp -->
+        <field>
+            <fullName>Timestamp__c</fullName>
+            <label>Timestamp</label>
+            <type>DateTime</type>
+            <required>true</required>
+        </field>
+        <!-- Action -->
+        <field>
+            <fullName>Action__c</fullName>
+            <label>Action</label>
+            <type>Text</type>
+            <length>50</length>
+            <required>true</required>
+        </field>
+    </fields>
+</CustomObject>
