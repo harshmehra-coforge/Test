@@ -1,5 +1,7 @@
-# Salesforce CLI development container; no patient data belongs in the image.
-FROM salesforce/cli:latest
-WORKDIR /workspace
+# Dockerfile for local dev/test harness
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-CMD ["sf", "project", "deploy", "start", "--help"]
+CMD ["pytest", "tests/"]
