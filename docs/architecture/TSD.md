@@ -1,161 +1,131 @@
-# Technical Specification Document (TSD)
+# Technical Specification Document (TSD): Discount Approval Escalation Enhancement for Salesforce
 
-## 1. Overview
-This Technical Specification Document defines the enhanced Salesforce Opportunity discount approval workflow as per the BRD and discovery meeting. The solution introduces a second-tier executive approval for discounts above 25%, along with SLA management, cross-channel notification, rejection handling, and auditable traceability. The workflow targets compliance with Q1 FY26 audit findings and strengthens governance for high-value deals.
+## 1. Solution Overview
 
-## 2. Context & Background
-Recent internal audits uncovered governance gaps in the discount approval process—high-value deals with discounts above 30% were approved by a single Deal Desk resource, bypassing executive oversight. The enhancement ensures:
-- Executive visibility and accountability for deep discounting
-- Robust auditability of approval actions, decisions, and escalations
-- SLA-driven response times to support deal velocity
+The solution introduces a two-tier sequential approval process in Salesforce for Opportunities with discounts above 25%, directly addressing governance gaps identified in audits. It integrates automated notifications for Finance and robust SLA management, leveraging Salesforce Flows, custom approval logic, and notification integrations (Email, Slack). Existing single-tier approval (10–25%) remains unchanged.
 
-**References:**
-- [BRD, June 2026] — Business Requirements for Discount Approval Workflow Enhancement
-- [Meeting Minutes, 20 June 2026] — Discovery session confirming sequential approval routing, notification, and SLA specification
+## 2. Architecture Context and Scope
 
-## 3. Solution Requirements
-### Functional
-- Discounts 10–25%: Approval by Deal Desk (no change to current)
-- Discounts >25%: Sequential approval — Deal Desk, then VP Sales (Suresh Iyer)
-- Triggered courtesy notification to Finance Director (on >25% escalation)
-- Approval/rejection via both email and Slack
-- 24h SLA for Deal Desk, 48h for VP Sales
-- SLA breach auto-escalates to Executive Assistant (Sunita Rao)
-- On VP rejection, Opportunity and combined comments return to owner; resubmission restarts at Deal Desk
+### 2.1 Scope
+- Applies to New Business and Renewal Opportunities in Salesforce with discounts >10%
+- Enhances approvals for >25% discounts (Deal Desk → VP Sales)
+- Adds Finance notification for deep-discount cases
+- Integrates with Salesforce, Slack, and email
 
-### Non-Functional
-- All actions are logged in Salesforce for audit traceability
-- Notifications are reliable, SLA-driven, and logged
-- Modular configuration for future approver/notification changes
-- Go-live by end of Q2 FY26
+### 2.2 Constraints
+- Implementation within Salesforce (using Flows or Apex if needed)
+- VP Sales/Delegate and Executive Assistant as active users
+- Notification must not delay approval chain
 
----
+## 3. High-Level Architecture Diagram
 
-## 4. Architecture & Workflow
+![Architecture Diagram](diagram-failed-to-render)
 
-### 4.1 Logical Process Flow
+## 4. Component Breakdown
 
-The enhanced approval workflow is orchestrated by Salesforce Flow and integrated notification services:
+### 4.1 Discount Approval Flow (Salesforce)
+- **Type:** Salesforce Flow/Process Builder or Apex
+- **Logic:**
+  - If discount >10% and ≤25%: Route to Deal Desk (existing)
+  - If discount >25%: Sequential — Deal Desk → VP Sales
+  - On Deal Desk rejection: Return to Deal Owner with comments
+  - On VP Sales rejection: Return to Deal Owner with comments from both tiers
 
-1. Opportunity discount entered (>10%)
-2. For 10–25%: Route to Deal Desk (Vikram Patel) for approval
-3. For >25%:
-   - Route to Deal Desk for approval
-   - Upon approval, escalate to VP Sales (Suresh Iyer) via Slack and email
-   - Finance Director (Anita Rao) receives informational notification immediately
-4. SLAs enforced for each approval step (24h, 48h)
-5. On SLA breach (VP step), escalate via Slack/email to Executive Assistant (Sunita Rao)
-6. On rejection at any tier: inform Deal Owner, require resubmission, restart full chain
+### 4.2 Notification Engine
+- **Channels:**
+  - Email (Deal Desk, VP Sales, Finance)
+  - Slack (VP Sales, EA)
+- **Triggers:**
+  - Finance notification for >25% discounts upon VP Sales assignment
+  - SLA start for each approval tier; escalation if threshold breached
 
-### 4.2 Workflow Mermaid Diagram
+### 4.3 SLA Escalation Logic
+- **Deal Desk SLA:** 24h
+- **VP Sales SLA:** 48h (escalates to EA on breach)
 
-### 4.3 Process Steps
-- Entry: Opportunity owner requests discount >10% (New Business/Renewal)
-- Process branches at 25% threshold; >25% triggers two-stage approval
-- Deal Desk (first stage) validates business need & compliance
-- Upon Deal Desk approval:
-  - If discount ≤25%: process complete
-  - If discount >25%: escalate
-    - VP Sales notified for approval (Slack & email; 48h SLA)
-    - Finance receives courtesy notification (email, immediate)
-- Rejections (any stage): All comments passed back to owner
-- On SLA breach (VP stage): auto-notify Exec Assistant
-- Resubmission always restarts full chain
+### 4.4 Audit/Tracking Store (Salesforce)
+- **Tracks:**
+  - SLA start/stop and breaches (per Opportunity)
+  - Approval/rejection decision time stamps
+  - Notification delivery tags
 
----
+## 5. Key Data Models
 
-## 5. Technical Architecture
+### 5.1 Opportunity Object Extension
+- Field: Discount Percentage (existing)
+- Field: Approval Status [Not Started, Deal Desk Pending, VP Sales Pending, EA Escalated, Approved, Rejected]
+- Field: Approval Chain Summary (with comments)
+- Field: SLA Timestamps
 
-### 5.1 System Components
-- **Salesforce Flow:** Orchestrates Opportunity approval routing, triggers escalations, and tracks SLA timers.
-- **Notification Service:** Integrates with Salesforce for outbound emails and Slack messages; handles delivery, logging, and retry.
-- **SLA Engine:** Monitors flow steps, triggers escalation on deadline breach.
-- **Audit Log Module:** Captures approval/rejection events, notification deliveries, and escalation triggers inside Salesforce for auditability.
-- **Admin Configuration Panel:** Allows adding/changing approvers/notification targets by role, not hard-coded users.
+### 5.2 Notification Log (Custom Object)
+- Opportunity reference
+- Notified to (User/Group)
+- Channel [Email/Slack]
+- Notification time/status
 
-### 5.2 Integration Points
-- **Salesforce ↔ Email & Slack:** Outbound notification to users; responses update approval status
-- **Salesforce User Roles:** Approver assignments respect org chart and delegate coverage
-- **Administrative:** Tier-2 approver and finance targets configurable by Salesforce Admin
+## 6. API, Integration, and Automation Design
 
-### 5.3 Security & Compliance
-- **Authentication:** All user actions authenticated via Salesforce Single Sign-On
-- **Authorization:** Only assigned approvers can act at their tier; audit trail enforced
-- **Data Handling:** All workflow actions, notifications, and SLA triggers logged
-- **RBAC:** Role-Based Access Controls for configuration management
-- **Data Residency:** All data/assets stored in compliance with corporate policies
-
-### 5.4 Deployment & Operations
-- **CI/CD:** All Flow and integration code deployed via GitHub Actions into Salesforce lower and production orgs
-- **Observability:** All errors, delays, and notification failures raised as Service Desk tickets and monitored via Salesforce report dashboards
----
-
-## 6. Data Model
-
-### 6.1 Object Model Changes
-- **Opportunity Extension:**
-  - Custom fields: approval status, current tier, approval/rejection comments, SLA start/end timestamps
-  - Lookup relationships to enable multi-stage routing records
-- **Audit Log Table:**
-  - Tracks all approval actions, notification delivery, escalation events; timestamped and reportable
-- **Notification Template Table:**
-  - Templates for each notification type (approval, escalation, finance info), multi-channel
-
-### 6.2 Data Flow
-- All approval/rejection actions update Opportunity and Audit Log
-- SLA timers written against approval chain; resets on each resubmission
-- Notification delivery results stored for each triggered step
----
+- Salesforce Flow / Apex handles main process
+- Slack notification: Use Salesforce Slack App or Azure Logic Apps endpoint
+- Email via Salesforce email integration
+- Notification to Finance: Address group email/Slack channel configured per Finance team
+- SLA and Escalation: Time-based workflow triggers (Flow, Scheduled Apex, or Azure Logic Apps if external needed)
 
 ## 7. Non-Functional Requirements (NFRs)
 
-| NFR Category          | Requirement                                       |
-|-----------------------|---------------------------------------------------|
-| Latency               | Notifications delivered < 1 minute from event     |
-| SLA Compliance        | 99.5% of approvals/escalations within 5m of SLA   |
-| Auditability          | 100% approval/rejection actions logged & reportable|
-| Availability          | Workflow components ≥ 99.9% uptime                |
-| Notification Delivery | ≥ 99.0% successful first-attempt delivery rate    |
-| Security              | Conforms to company RBAC, SSO, audit policies     |
-| Modifiability         | Approver/notify targets updatable w/o code deploy |
-| Cost                  | Incremental run cost ≤ $400/mo (notification+SLA) |
-| Scalability           | Up to 400 approval requests/month                 |
+- **Approval Latency:**
+  - Deal Desk: <24h p99
+  - VP Sales: <48h p99 (auto-escalate if exceeded)
+- **System Availability:**
+  - Approval workflow available 99.9% during business hours (M-F, 8am–6pm user time)
+- **Notification Delivery:**
+  - Email/Slack delivery attempts within 60 seconds of workflow trigger
+- **Audit Logging:**
+  - 100% of approval chains with >25% discount logged to audit record, retrievable for 7 years
+- **Cost Impact:**
+  - <2% incremental Salesforce automation cost vs current baseline (for added workflow steps)
+- **Security & Compliance:**
+  - Only authorized approvers/Finance may access deep-discount approval data (role-based visibility enforced in Salesforce)
+  - All notification endpoints (Slack, Email) integrated via approved connectors, secured with OAuth or managed identity
 
----
+## 8. Security, Identity, and Audit
 
-## 8. Tradeoffs & Alternatives
+- All approval decisions, comments, timestamps, and notification events are audit-logged (Salesforce custom object)
+- Managed identities used for Slack & Email integrations (no hardcoded secrets)
+- Salesforce field-level security restricts sensitive data to approvers, Finance, Deal Desk, and admins
+- Access to audit logs restricted to Sales Ops, Legal, and Audit per RBAC
 
-- **Alternative – Parallel or direct-to-exec approvals:**
-  - Rejected to protect executive bandwidth and maintain Deal Desk diligence
-- **Alternative – VP-only restart on rejection:**
-  - Rejected for audit integrity; full chain restart closes loopholes
-- **Workflow Engine – Managed Salesforce Flow vs. Custom App:**
-  - Chose Salesforce Flow for no/low code, modularity, compliance
-- **Notification via Email Only:**
-  - Rejected, as Slack use greatly increases executive response times
+## 9. Alternatives Considered & Trade-Offs
 
----
+### 9.1 Parallel Approval (vs Sequential)
+- *Rejected*: VP Sales only reviews post Deal Desk screening; avoids executive overload on marginal cases (10–25%). Sequential process keeps VP focused on strategic deals.
 
-## 9. Implementation Guidance
+### 9.2 Manual Finance Review (vs Notification Only)
+- *Rejected*: Audit/Finance only need visibility, not blocking power. Automated notification meets reporting/audit needs with no process bottleneck.
 
-- Use Salesforce Flow for all routing, decision, and timer logic.
-- Implement notification integrations via standard Salesforce email action plus Slack API/Webhook (using Salesforce Slack App or Workato if available).
-- SLA timers tracked using Salesforce Flow wait/schedule/timeout steps; escalate via Flow trigger and notification action.
-- Ensure notification failures (e.g., Slack API errors) create Service Desk ticket automatically.
-- Test with historical data set to verify >25% path coverage, notification accuracy, and rejection resubmission enforcement.
-- Configuration UI (admin panel) should use dynamic lists for executive/finance targets (no hardcoded emails/user IDs).
-- Audit reports should be available to process owner and internal audit team via Salesforce dashboard.
+### 9.3 External Workflow Engine (vs Salesforce Native)
+- *Rejected for Phase 1*: Salesforce Flows/Apex sufficient for SLA/logging/integration. Only consider Azure Logic Apps if future cross-system workflow/signal complexity increases.
 
----
+## 10. Implementation Plan & Rollout
 
-## 10. Appendices
+1. Update Opportunity and Approval objects per data model section
+2. Implement/modify Salesforce Flow (deal approval chains, SLA logic, comments, and re-submission handling)
+3. Integrate Slack, Email notification steps (Salesforce Apps/Logic Apps as needed)
+4. Build audit log/reporting queries for Sales Ops/Finance
+5. Validate process in UAT with >25% test Opportunities (incl. SLA breach scenario)
+6. Train Deal Desk, VP Sales, Finance, Sales users on new logic/notifications
+7. Go-live: End Q2 FY26, with rollback plan to single-tier flow if major breakage
 
-### 10.1 Reference Material
-- [BRD] BA-dynamic-agent/BRD.md
-- [Meeting Notes] Meeting_Note_01_Discount_Depth 2.md
-- [Q1 FY26 Audit] (internal doc)
-- [Current Workflow Doc] (internal doc)
+## 11. Rationale & Traceability
 
-### 10.2 Change Log
-- v1.0 (23 Oct 2026): Initial version based on BRD and discovery meeting
----
+- Core workflow aligns directly with audit findings, BRD, and user stories
+- Sequential routing maintains compliance, minimizes executive/Finance overload
+- Use of native Salesforce automation ensures lowest TCO and fastest path to go-live
+- SLA/enforcement choices tied to risk exposure noted in meeting/audit
+- Security/notification integrations meet Zero Trust, auditability, and minimal surface area principles
+
+## 12. References
+
+- Meeting_Note_01_Discount_Depth 2.md (source of business/audit context)
+- BA-dynamic-agent/BRD.md (requirements)
+- PO-dynamic-agent/USER_STORIES.md (user stories and scenarios)
