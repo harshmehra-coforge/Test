@@ -1,2 +1,9 @@
-# Requirements for local dev/test harness (not Salesforce production)
-python-dotenv
+fastapi==0.95.2
+uvicorn[standard]==0.22.0
+pydantic==1.10.7
+azure-cosmos==4.4.0
+azure-eventhub==5.10.1
+azure-identity==1.13.0
+httpx==0.24.1
+pytest==7.3.1
+python-dotenv==1.0.0
