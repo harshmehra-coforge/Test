@@ -1,3 +1,9 @@
-"""Shared placeholder for non-Salesforce local test configuration."""
+"""
+Pytest configuration and fixtures.
+"""
+import pytest
 
-# TODO: Add fixture/configuration helpers only for non-PHI unit tests.
+@pytest.fixture(scope="session")
+def test_app():
+    # TODO: Setup FastAPI test client
+    pass
