@@ -1,0 +1,2 @@
+# Requirements for local dev/test harness (not Salesforce production)
+python-dotenv
