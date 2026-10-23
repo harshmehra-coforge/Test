@@ -1,15 +1,19 @@
-"""Environment-backed configuration."""
-from functools import lru_cache
-from pydantic_settings import BaseSettings, SettingsConfigDict
+"""
+Configuration management for environment variables and settings.
+"""
+import os
+from pydantic import BaseSettings
 
 class Settings(BaseSettings):
-    """Runtime settings."""
-    app_name: str = "basic-calculator"
-    environment: str = "local"
-    debug: bool = False
-    model_config = SettingsConfigDict(env_prefix="CALCULATOR_", env_file=".env", extra="ignore")
+    cosmos_db_uri: str
+    cosmos_db_key: str
+    cosmos_db_database: str
+    event_hub_conn_str: str
+    notification_email_api_key: str
+    slack_webhook_url: str
+    jwt_secret: str
+    azure_managed_identity: str
+    class Config:
+        env_file = ".env"
 
-@lru_cache
-def get_settings() -> Settings:
-    """Return cached settings."""
-    return Settings()
+settings = Settings()
