@@ -1,7 +1,8 @@
-# Dockerfile for local dev/test harness
+# Dockerfile for Rejection Handling & Resubmission API
 FROM python:3.11-slim
 WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-CMD ["pytest", "tests/"]
+COPY src/ ./src/
+COPY .env.example ./
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
