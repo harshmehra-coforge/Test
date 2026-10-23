@@ -1,131 +1,229 @@
-# Technical Specification Document (TSD): Discount Approval Escalation Enhancement for Salesforce
+# Technical Specification Document (TSD)
 
 ## 1. Solution Overview
 
-The solution introduces a two-tier sequential approval process in Salesforce for Opportunities with discounts above 25%, directly addressing governance gaps identified in audits. It integrates automated notifications for Finance and robust SLA management, leveraging Salesforce Flows, custom approval logic, and notification integrations (Email, Slack). Existing single-tier approval (10–25%) remains unchanged.
+This document details the technical architecture for a modern web-based storytelling application with the following strategic goals:
+- **AI assistance**: Empower users to create, edit, and enhance stories with generative AI (text and multimedia generation).
+- **Multimedia support**: Enable rich stories comprising text, images, and audio, with integrated upload, search, and playback features.
+- **Web-first delivery**: Responsive web application for desktop/mobile access (PWA-ready), leveraging cloud-native scalable architecture.
 
-## 2. Architecture Context and Scope
+---
 
-### 2.1 Scope
-- Applies to New Business and Renewal Opportunities in Salesforce with discounts >10%
-- Enhances approvals for >25% discounts (Deal Desk → VP Sales)
-- Adds Finance notification for deep-discount cases
-- Integrates with Salesforce, Slack, and email
+## 2. Context and Objectives
 
-### 2.2 Constraints
-- Implementation within Salesforce (using Flows or Apex if needed)
-- VP Sales/Delegate and Executive Assistant as active users
-- Notification must not delay approval chain
+The platform targets content creators and casual users seeking collaborative or solo storytelling powered by AI and multimedia. Key objectives:
+- Seamless AI-powered co-authoring
+- Easy multimedia integration (images/audio)
+- Fast, intuitive, secure user experience
+- Cloud-managed scalability and observability
 
-## 3. High-Level Architecture Diagram
+---
 
-![Architecture Diagram](diagram-failed-to-render)
+## 3. Business Requirements (as inferred)
+1. Users can create, edit, and publish stories using natural-language prompts and AI suggestions.
+2. Stories can incorporate images and audio (uploaded by user or generated via AI).
+3. All media is stored securely and accessed efficiently.
+4. The app supports user authentication, project/workspace management, and sharing.
+5. The system enforces security best practices per Zero Trust and regulatory compliance.
 
-## 4. Component Breakdown
+---
 
-### 4.1 Discount Approval Flow (Salesforce)
-- **Type:** Salesforce Flow/Process Builder or Apex
-- **Logic:**
-  - If discount >10% and ≤25%: Route to Deal Desk (existing)
-  - If discount >25%: Sequential — Deal Desk → VP Sales
-  - On Deal Desk rejection: Return to Deal Owner with comments
-  - On VP Sales rejection: Return to Deal Owner with comments from both tiers
+## 4. Architecture Overview
 
-### 4.2 Notification Engine
-- **Channels:**
-  - Email (Deal Desk, VP Sales, Finance)
-  - Slack (VP Sales, EA)
-- **Triggers:**
-  - Finance notification for >25% discounts upon VP Sales assignment
-  - SLA start for each approval tier; escalation if threshold breached
+**Architecture Style**: Microservices, event-driven, serverless-first.
+**Platform**: Azure Cloud (preferred managed services)
+**Client**: Modern SPA (React/Next.js, PWA enabled)
+**API**: FastAPI (async, OpenAPI 3.0+)
+**Data**:
+- NoSQL: Azure Cosmos DB (stories, media metadata)
+- Files: Azure Blob Storage (media)
+- Cache: Azure Redis
+**AI**: Azure OpenAI Service (text/image generation), Azure Speech (audio)
+**Messaging**: Azure Event Hubs
+**Observability**: Azure Monitor, OpenTelemetry
+**CI/CD**: GitHub Actions, Terraform IaC
 
-### 4.3 SLA Escalation Logic
-- **Deal Desk SLA:** 24h
-- **VP Sales SLA:** 48h (escalates to EA on breach)
+---
 
-### 4.4 Audit/Tracking Store (Salesforce)
-- **Tracks:**
-  - SLA start/stop and breaches (per Opportunity)
-  - Approval/rejection decision time stamps
-  - Notification delivery tags
+## 5. Key Components
+1. **Web Client**: React/Next.js SPA for story editing, multimedia integration, and AI-augmented workflow.
+2. **API Gateway**: Authentication, routing, API aggregation (FastAPI, OAuth 2.0/JWT).
+3. **Story Service**: CRUD for stories, AI prompt processing, workflow status tracking.
+4. **Media Service**: Image/audio upload, AI generation proxy, media search & retrieval.
+5. **User Service**: Profiles, authentication, authorization (RBAC), preferences.
+6. **AI Orchestration Service**: Interface to Azure OpenAI (text/image) and Speech APIs, enforce usage quotas and costs.
+7. **Notification Service**: Real-time collaboration and event notifications via Azure Event Hubs.
+8. **Storage Layer**: Cosmos DB (JSON: stories, users, media metadata), Blob Storage (binary media), Redis (session/cache).
 
-## 5. Key Data Models
+---
 
-### 5.1 Opportunity Object Extension
-- Field: Discount Percentage (existing)
-- Field: Approval Status [Not Started, Deal Desk Pending, VP Sales Pending, EA Escalated, Approved, Rejected]
-- Field: Approval Chain Summary (with comments)
-- Field: SLA Timestamps
+## 6. Architecture Diagram
 
-### 5.2 Notification Log (Custom Object)
-- Opportunity reference
-- Notified to (User/Group)
-- Channel [Email/Slack]
-- Notification time/status
+```
+graph TD
+  A[Web Client (React/Next.js)] --API calls--> B(API Gateway)
+  B --routes--> C[Story Service]
+  B --routes--> D[Media Service]
+  B --routes--> E[User Service]
+  C --uses--> F[AI Orchestration Service]
+  D --uses--> F
+  F --calls--> G[Azure OpenAI Service]
+  F --calls--> H[Azure Speech API]
+  C --writes/reads--> I[Cosmos DB (Stories, Metadata)]
+  D --stores/media--> J[Azure Blob Storage]
+  B --cache/session--> K[Redis]
+  B --publishes events--> L[Azure Event Hubs]
+  L --notifies--> A
+  A --real-time events--> B
+```
 
-## 6. API, Integration, and Automation Design
+*If diagram rendering fails in preview, paste code above into a Mermaid live editor.*
 
-- Salesforce Flow / Apex handles main process
-- Slack notification: Use Salesforce Slack App or Azure Logic Apps endpoint
-- Email via Salesforce email integration
-- Notification to Finance: Address group email/Slack channel configured per Finance team
-- SLA and Escalation: Time-based workflow triggers (Flow, Scheduled Apex, or Azure Logic Apps if external needed)
+---
 
-## 7. Non-Functional Requirements (NFRs)
+## 7. Component Responsibilities
 
-- **Approval Latency:**
-  - Deal Desk: <24h p99
-  - VP Sales: <48h p99 (auto-escalate if exceeded)
-- **System Availability:**
-  - Approval workflow available 99.9% during business hours (M-F, 8am–6pm user time)
-- **Notification Delivery:**
-  - Email/Slack delivery attempts within 60 seconds of workflow trigger
-- **Audit Logging:**
-  - 100% of approval chains with >25% discount logged to audit record, retrievable for 7 years
-- **Cost Impact:**
-  - <2% incremental Salesforce automation cost vs current baseline (for added workflow steps)
-- **Security & Compliance:**
-  - Only authorized approvers/Finance may access deep-discount approval data (role-based visibility enforced in Salesforce)
-  - All notification endpoints (Slack, Email) integrated via approved connectors, secured with OAuth or managed identity
+**Web Client**: 
+- Text and multimedia story editor (block-based)
+- Suggests story continuations/images/audio via AI APIs
+- Uploads media, fetches assets, manages versions
+- Real-time UI updates via Event Hubs
 
-## 8. Security, Identity, and Audit
+**API Gateway:**
+- JWT-secured API entry, role-based routing
+- Request validation, throttling, logging
 
-- All approval decisions, comments, timestamps, and notification events are audit-logged (Salesforce custom object)
-- Managed identities used for Slack & Email integrations (no hardcoded secrets)
-- Salesforce field-level security restricts sensitive data to approvers, Finance, Deal Desk, and admins
-- Access to audit logs restricted to Sales Ops, Legal, and Audit per RBAC
+**Story Service:**
+- Story CRUD, versioning, collaborative status
+- AI prompt dispatch/response parsing
+- Tracks story revisions/owners
 
-## 9. Alternatives Considered & Trade-Offs
+**Media Service:**
+- Image/audio file processing and storage
+- Proxy for AI generation
+- Metadata and transcoding
 
-### 9.1 Parallel Approval (vs Sequential)
-- *Rejected*: VP Sales only reviews post Deal Desk screening; avoids executive overload on marginal cases (10–25%). Sequential process keeps VP focused on strategic deals.
+**User Service:**
+- User registration, profile, preferences
+- AuthN/AuthZ enforcement
 
-### 9.2 Manual Finance Review (vs Notification Only)
-- *Rejected*: Audit/Finance only need visibility, not blocking power. Automated notification meets reporting/audit needs with no process bottleneck.
+**AI Orchestration:**
+- Connects to OpenAI (text/image), Speech API
+- Usage metering, abuse/threat filtering
+- Caches recent AI responses
 
-### 9.3 External Workflow Engine (vs Salesforce Native)
-- *Rejected for Phase 1*: Salesforce Flows/Apex sufficient for SLA/logging/integration. Only consider Azure Logic Apps if future cross-system workflow/signal complexity increases.
+**Notification Service:**
+- Relays story/asset events to clients
+- Supports real-time editing notifications
 
-## 10. Implementation Plan & Rollout
+**Storage Layer:**
+- Cosmos DB JSON docs: stories, users, media metadata
+- Blob: images, audio files
+- Redis: auth sessions, recent drafts/media for fast access
+---
 
-1. Update Opportunity and Approval objects per data model section
-2. Implement/modify Salesforce Flow (deal approval chains, SLA logic, comments, and re-submission handling)
-3. Integrate Slack, Email notification steps (Salesforce Apps/Logic Apps as needed)
-4. Build audit log/reporting queries for Sales Ops/Finance
-5. Validate process in UAT with >25% test Opportunities (incl. SLA breach scenario)
-6. Train Deal Desk, VP Sales, Finance, Sales users on new logic/notifications
-7. Go-live: End Q2 FY26, with rollback plan to single-tier flow if major breakage
+## 8. Data Model & Storage
 
-## 11. Rationale & Traceability
+### Cosmos DB
+- **Stories**: storyId (PK), userId, title, blocks[], assets[], createdAt, updatedAt, versions[]
+- **Users**: userId (PK), username, email, hash, preferences, createdAt
+- **Media Metadata**: mediaId (PK), ownerId, type (image/audio), url, storyId, tags[], createdAt
+- **Partition Key**: userId (high cardinality)
+- **Indexing Policy**: Range (createdAt, updatedAt), point lookup (storyId, mediaId)
+- **RU Provisioning**: Start at 10,000 RU/s, scale per load test; justify for concurrent AI & media write bursts
 
-- Core workflow aligns directly with audit findings, BRD, and user stories
-- Sequential routing maintains compliance, minimizes executive/Finance overload
-- Use of native Salesforce automation ensures lowest TCO and fastest path to go-live
-- SLA/enforcement choices tied to risk exposure noted in meeting/audit
-- Security/notification integrations meet Zero Trust, auditability, and minimal surface area principles
+### Blob Storage
+- Hierarchical containers: /stories/{storyId}/media/{mediaId} | /users/{userId}/profile.jpg
+- Lifecycle: Retain user assets 90 days post-deletion; regular cleanup
 
-## 12. References
+### Redis
+- Session tokens, OTPs, recent media blocks, intent cache for AI
 
-- Meeting_Note_01_Discount_Depth 2.md (source of business/audit context)
-- BA-dynamic-agent/BRD.md (requirements)
-- PO-dynamic-agent/USER_STORIES.md (user stories and scenarios)
+---
+
+## 9. AI/Integration Details
+- **OpenAI**: GPT-4 Turbo (text), DALL-E 3 (image) via Azure OpenAI
+- **Audio**: Azure Speech Service (text-to-speech, speech-to-text)
+- **AI client**: Singleton FastAPI async clients, Azure region selection; exponential backoff retries, timeouts
+- **Cost control**: Quotas per user, metering, configurable moderation
+- **Prompt flow**: User prompt → Story Service → AI Orchestration → Service/Blob update → Event Hub notify
+- **Content filtering**: Enforced via OpenAI moderation, checked before save
+
+---
+
+## 10. NFRs
+- **Performance**:
+  - p99 write latency < 250ms
+  - p99 media upload < 2 sec (up to 10MB)
+  - p99 AI response < 4 sec (text), < 10 sec (image/audio)
+- **Scalability**:
+  - 100k daily active users
+  - Burst AI ops: 500 stories/min
+- **Availability**: 99.9% end-to-end SLA (web/API)
+- **Cost**:
+  - Estimated $0.005 per AI text, $0.10 per image, $0.05 per audio
+- **Security**:
+  - RBAC, managed identities, all media in Azure Blob
+  - End-to-end data encryption in transit/at rest
+  - Key Vault for secrets, OAuth 2.0/SAML SSO
+  - Secure upload (virus scan), content moderation, logging
+- **Compliance**:
+  - GDPR: user data erasability, audit logging
+  - COPPA: parental consent gating (if under age)
+  - Audit events: all AI requests, media uploads
+
+---
+
+## 11. Alternatives and Trade-offs
+
+### 1. AI Provider
+- **OpenAI via Azure**: Most robust, managed; cost and occasional rate limits apply.
+- **Anthropic, Google**: More flexibility, but not natively supported on Azure; significant integration overhead.
+- **Trade-off**: Azure-hosted OpenAI chosen for best support, ease of security compliance, integration with other Azure resources.
+
+### 2. Storage
+- **Cosmos DB + Blob (Current)**: Scales globally, native event, and index support, tiered cost.
+- **Alternatives**: PostgreSQL (more schema rigidity, less suited for content blocks), S3 (less integration with Azure event/MFA/identity stack).
+- **Trade-off**: Cosmos/Blob for partitioning and multimedia scalability; a rel-db layer foregone for simpler schema-flex.
+
+### 3. Frontend
+- **React/Next.js (SPA/PWA)**: Web-first, fast deploys, broad resource ecosystem.
+- **Alternatives**: Angular/Vue (comparable); mobile native apps (added cost, effort, split experience).
+- **Trade-off**: SPA/PWA offers reach, code reuse, rapid iteration.
+
+### 4. Observability and Security
+- **Azure Monitor, OpenTelemetry**: Out-of-box integration, SSO/AAD support.
+- **Alternatives**: Datadog (added cost), custom stack (more effort, less native support).
+- **Trade-off**: Azure stack accelerates rollout and compliance.
+
+---
+
+## 12. Implementation Guidance
+- Scaffold solution using IaC (Terraform, Azure DevOps pipeline)
+- Establish FastAPI/React template repos (lint, SCA, CI)
+- Prioritize serverless where possible
+- Stage rollout: core CRUD, AI assist, then media generation/upload
+- Load test AI orchestration and Blob/Cosmos layers early
+- Enforce NFRs with synthetic monitoring and reporting
+- Integrate with Azure Monitor/GitHub Actions for incident feedback
+
+---
+
+## Appendix
+
+**Key Azure Services Reference**:
+- Azure OpenAI (text, image)
+- Azure Speech (audio generation/recognition)
+- Azure Cosmos DB (serverless mode, global distribution)
+- Azure Blob Storage (hot/cool tiers, automatic redundancy)
+- Azure Redis (cache, geo-replication)
+- Azure Event Hubs (real-time notification)
+- Azure Monitor, Key Vault, App Insights (observability, secrets)
+- Terraform IaC, GitHub Actions (CI/CD)
+
+**Change Log**:
+- v1: Initial TSD (AI assist + multimedia, web by design per reviewer)
+
+---
+
+**End of TSD**
