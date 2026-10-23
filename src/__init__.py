@@ -1,1 +1,1 @@
-"""HTTP API package."""
+"""Config package for workflow settings."""
