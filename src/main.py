@@ -1,13 +1,15 @@
-"""FastAPI application factory."""
+"""
+Entrypoint and FastAPI app factory.
+"""
 from fastapi import FastAPI
-from calculator.api.routes import router
-from calculator.config import Settings, get_settings
+from src.api import feedback, resubmission, notification, audit
 
-def create_app(settings: Settings | None = None) -> FastAPI:
-    """Create and configure the application."""
-    app_settings = settings or get_settings()
-    app = FastAPI(title=app_settings.app_name, debug=app_settings.debug)
-    app.include_router(router)
-    return app
+app = FastAPI(title="Rejection Handling & Resubmission API")
 
-app = create_app()
+# Register routers
+app.include_router(feedback.router, prefix="/feedback", tags=["Feedback"])
+app.include_router(resubmission.router, prefix="/resubmission", tags=["Resubmission"])
+app.include_router(notification.router, prefix="/notification", tags=["Notification"])
+app.include_router(audit.router, prefix="/audit", tags=["Audit"])
+
+# TODO: Add startup/shutdown events, health checks, etc.
