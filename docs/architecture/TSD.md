@@ -1,195 +1,187 @@
 # Technical Specification Document (TSD)
 
-## Title
-Rejection Handling & Resubmission – Feature 5.4 (KAN-497)
+## 1. Overview
+This document details the technical system design for the High Value Deal Approval Enhancement project within Salesforce. The solution introduces parallel finance approval, maintains the isolated deal desk approval for high discounts, enforces SLAs, automates notifications, aggregates rejection comments, enables auto-approval for 0% discount renewals, and ensures robust permission handling and deployment rollback.
 
-## Purpose
-Enable end-to-end rejection feedback and resubmission workflows for user-submitted stories/opportunities in accord with governance and compliance, supporting audit traceability, user improvement, and transparent error handling.
+## 2. Problem Statement & Business Context
+Salesforce's current approval process for Opportunities lacks parallelized, value-based approval and timely, multi-channel notifications for internal users. As deal sizes and discount volumes rise, compliance, speed, and auditability are mission-critical.
 
-## Scope
-- Combined feedback delivery on rejection (UI + backend)
-- Resubmission workflow and logic (UI + backend)
-- Notification system integration (Email, Slack)
-- Full approval chain restart upon resubmission
-- Multiple rejection/resubmission cycles
-- Audit traceability for compliance
+**Business goals:**
+- Control and compliance (high-value/high-discount deals)
+- Timely, multi-channel notification and escalation
+- SLA-driven, auditable workflow
+- Reduce manual overhead for renewals and rejections
 
-## References
-- [BRD.md]
-- [USER_STORIES.md]
-- [JIRA_FETCH_CONTEXT.md]
-- [Meeting_Note_01_Discount_Depth 2.md]
-- Jira: KAN-497
+## 3. Architecture Context & Key Decisions
+- Cloud: Salesforce (core platform + Apex custom logic)
+- Notifications: Salesforce Email, MS Teams Webhook (via Apex)
+- SLA timings: 24/48h enforcement with escalation
+- Data: Salesforce Opportunity, ProcessInstanceStep
+- Security: Field-Level Security (FLS), with sharing Apex
+- Audit: Full audit trail within Opportunity and approval objects
+- Default: Approvals run in parallel if both triggers are met; logic isolation between tracks
 
-## High-Level Architecture Overview
-
-The system applies a microservices and event-driven model (Azure-native stack):
-- UI microservice for user-facing feedback and resubmission
-- Feedback aggregation service for comment collation
-- Workflow Engine for managing approval and rejection flow logic
-- Notification Service (Email, Slack)
-- Audit Logging Service (centralized, queryable)
-- Azure Cosmos DB for storing workflow state, feedback, and audit logs
-- Integration with existing databases and workflow engines as required
-
-Approval chains always restart from the first tier after rejection, and each action is logged. The architecture supports concurrent, independently audited resubmission cycles without risk of process circumvention.
-
----
-
-## 1. Functional Requirements
-
-### 1.1 Rejection Feedback & Resubmission
-- Upon any rejection (Deal Desk, VP Sales), feedback from all reviewers is aggregated and delivered to the submitter via UI and notifications.
-- Submitter can edit and resubmit; entire approval chain restarts from Deal Desk tier.
-- The system must support multiple rejection/resubmission cycles for the same record, with each cycle fully audited.
-
-### 1.2 Notification Workflow
-- Notify users of rejection feedback and resubmission via Email and Slack.
-- Notify reviewers (including escalation per SLA); finance receives courtesy notification upon VP Sales engagement.
-- Notification delivery must be audited, retried on failure, and have SLA-bound escalation (e.g., 24h for Deal Desk, 48h for VP Sales with auto-escalation to EA).
-
-### 1.3 UI Feedback Presentation
-- Feedback is displayed in the UI immediately after rejection.
-- UI supports: feedback detail, source (review tier), edit/resubmit controls, and error messaging.
-
-### 1.4 Error & Boundary Handling
-- Any submission/resubmission error results in an immediate notification to the user.
-- Workflow errors (backend logic, notification delivery failure, data issues) are to be logged, traced, and must not compromise audit traceability.
-
-### 1.5 Audit Logging
-- Every submission, rejection, feedback delivery, resubmission, and notification is centrally logged for compliance.
+## 4. Requirements Mapping
+| # | Requirement | Implementation | NFR (quantifiable) |
+|---|-------------|----------------|---------------------|
+| BR-01 | Finance approval (> $500K) | Flow/Apex/Approval Process | Latency <2s trigger, SLA 48h |
+| BR-02 | Dynamic approver by TCV | Metadata/Flow Routing | |
+| BR-03 | Isolated deal desk (Discount >10%) | Approval Process | |
+| BR-04 | Custom field: TCV | New field | Availability 99.95% |
+| BR-05 | Finance notifications | Email, Teams, Apex svc | Delivery >99% |
+| BR-06 | SLA enforcement/escalation | Flow + scheduled apex | SLA adherence 99.9%, Audit log 100% |
+| BR-07 | Rejection comment consolidation | Process/Flow + update | |
+| BR-08 | Restart on resubmission | Record-triggered flow | |
+| BR-09 | Auto-approve renewal, 0% | Flow | |
+| BR-10 | FLS/Permission compliance | Apex as SECURITY_ENFORCED | 100% adherence |
+| BR-11 | Delivery reliability | Retries/logs on failed notif | |
+| BR-12 | SLA/Audit metrics | Track in custom fields, logs | |
+| BR-13 | Compliance | Change tracking/reportable | |
 
 ---
 
-## 2. System Architecture & Component Design
+## 5. Solution Architecture Diagram
 
-### 2.1 Microservices Overview
-- **UI Service (React/Angular)**: Presents feedback and resubmission; interacts asynchronously with backend.
-- **Feedback Service**: Aggregates rejection comments; exposes REST API for feedback retrieval (FastAPI, OpenAPI 3.0+).
-- **Workflow Engine (Azure Logic Apps/Functions)**: Orchestrates approval/rejection logic, triggers notifications, restarts chains on resubmission.
-- **Notification Service**: Sends notifications (Email via Azure Communication Services, Slack integration); handles retries, escalation, and audit logging.
-- **Audit Log Service**: Persists all auditable events in Cosmos DB, enforcing immutable event sourcing.
-- **Data Store (Azure Cosmos DB)**: Stores workflow instances, feedback records, and audit logs. High-cardinality partition keys: tenantId + opportunityId.
+## 5. Solution Architecture Diagram
 
-### 2.2 Event Flow (Summary)
-- Story submitted > Approval Chain triggered (Deal Desk → VP Sales)
-- On rejection at any tier: comments aggregated > Feedback delivered > UI updated > User can resubmit
-- Resubmission triggers full chain restart
-- Each cycle/events recorded in Audit Log
+*(Diagram rendering failed; see sequence below for logical flow)*
 
-### 2.3 Component Interactions
-- All inter-service communication is over secure, authenticated APIs (Azure Managed Identities)
-- Async callbacks/events published to Azure Event Hubs/Service Bus for notification delivery and audit pipelines
-
----
-
-## 3. Data Models & Storage
-
-### 3.1 Core Entities
-- **Opportunity/Story Document**: Unique identifier, current status, submission history, last reviewer tier, resubmission count, references to feedback records
-- **Feedback Record**: Opportunity/story id, reviewers/comments, timestamp, delivery status, correlation id
-- **Audit Log Entry**: Entity type, action, actor, timestamp, event detail (immutable, GRC-compliant)
-- **Notification Event**: Event id, recipient(s), channel, delivery status, escalation status, timestamp
-
-### 3.2 Cosmos DB Design
-- Partition key: tenantId|opportunityId (guarantees high cardinality, avoids hot partitions)
-- Feedback embedded in story only when <2MB; else referenced by id (for audit scalability)
-- Index on (status, lastReviewer, resubmissionCount) for reporting and compliance queries
-- All approval/rejection cycles versioned via history log for traceability
-
-### 3.3 Audit & Change Feed
-- Every document update triggers Cosmos DB Change Feed
-- Change events streamed to Audit Log Service via Event Hubs
-- Immutable retention (7+ years, configurable)
+### Opportunity Approval Workflow (Textual Sequence)
+1. **Trigger**: Opportunity is created or updated.
+2. **Check:**
+   - If `Total_Contract_Value__c > $500K` → Start parallel Finance Approval Process.
+   - If `Discount > 10%` → Start Deal Desk Approval (remains isolated).
+   - If both: both processes run.
+   - If `Type = Renewal` and `Discount = 0%`: Auto-approve (skip manual steps).
+3. **Finance Approval:**
+   - Approver = Director (≤ $2M) or CFO (> $2M).
+   - Notification via Email/Teams on initiation.
+   - SLA: notify at 24h (Director), escalate to CFO at 48h.
+4. **Deal Desk Approval:**
+   - Approval for Discount >10% Opportunities only.
+   - SLA: Notify at 12h, escalate at 24h.
+5. **Rejection Handling:**
+   - Consolidate all rejection comments into `Opportunity.Description`.
+   - If Opportunity is re-submitted (`StageName = 'Re-Submitted'`), both approvals restart, with prior statuses reset.
+6. **Audit & SLA Tracking:**
+   - All transitions/time stamps logged.
+7. **Permissions/Audit:**
+   - All Apex classes, flows, and processes respect Salesforce FLS and sharing model.
 
 ---
 
-## 4. Interfaces & Integrations
+## 6. Component Design
+### A. Opportunity Custom Field (Total_Contract_Value__c)
+- **Type:** Currency. Not required by default.
+- **Partition Key:** Standard Salesforce Opportunity; no custom partition needed.
+- **Access:** FLS; available to approval workflows only.
 
-### 4.1 API Endpoints (Sample)
-- `POST /stories/submit` – Submit new story/opportunity for approval
-- `POST /stories/{id}/resubmit` – Resubmit after rejection
-- `GET /stories/{id}/feedback` – Retrieve feedback for specific submission
-- `POST /notifications/send` – Trigger notification event
-- All endpoints require JWT authentication and Azure Managed Identity validation
+### B. Approval Processes
+#### 1. Finance_Approval_Process (NEW)
+- **Trigger Condition:** Opportunity.Total_Contract_Value__c > 500000
+- **Approver Assignment:**
+  - ≤ $2M → Anita Rao (Finance Director)
+  - > $2M → Ravi Krishnan (CFO)
+- **SLA**:
+  - 24h → Reminder to Anita Rao if pending
+  - 48h → Escalate to Ravi Krishnan
+- **Action:** On Approval, Opportunity.StageName → 'Proposal Approved'. On rejection, notify owner w/ comment.
+- **Audit:** ProcessInstanceStep + custom fields
 
-### 4.2 Notification Channels
-- **Azure Communication Services**: Email notifications (with delivery status callback)
-- **Slack (Official App Integration)**: Resubmission/rejection notifications via Slack channels; auto-escalation handled via Slack workflow
+#### 2. Deal_Desk_Approval_Process (NEW)
+- **Trigger Condition:** Opportunity.Discount > 10
+- **Approver:** Deal Desk Manager
+- **SLA:** 12h remind; 24h escalate
+- **Action:** Approval updates StageName; rejection returns w/ comments
+- **Audit:** ProcessInstanceStep records
 
-### 4.3 Approval Engine Integration
-- Workflow engine triggers feedback aggregation on rejection, notification service for alerts, and audit logging for all state changes
-- SLA monitoring for escalation (timer-based events)
+### C. Notification Integration
+#### 1. Email Notifications
+- **Service:** Salesforce Visualforce template
+- **Recipients:** Finance approvers
+- **Trigger:** On approval request submission
+- **Delivery:** Must log attempts/failures
 
-### 4.4 UI Integration
-- UI displays feedback, enables resubmission, and shows accurate status for each workflow instance
-
----
-
-## 5. Non-Functional Requirements (NFRs)
-
-- **Auditability**: 100% of submission, feedback, resubmission, and notification events are logged. Log queries for compliance available within 2s (p95).
-- **Performance**: Feedback/resubmission UI actions and notification delivery must complete in <3000ms p95 for 99% of users within 150k MAU scale.
-- **Availability**: 99.9% uptime SLA for core approval and resubmission workflows.
-- **Reliability**: At least 3x automatic retry for notification/message delivery. No event may be lost without an explicit error surface to the user/compliance.
-- **Security**: All APIs protected with RBAC, Azure AD, and Managed Identities. Data-at-rest encrypted with Azure Key Vault. Audit logs are immutable.
-- **Capacity**: Cosmos DB provisioned for 5k RU/s baseline, auto-scale to 20k RU/s on demand (supporting up to 10k concurrent active users).
-- **Cost**: Monthly Cosmos DB cost not to exceed $2k at max scale as provisioned. Alerted if >70% of RU limit is hit for more than 1 hour.
-- **Compliance**: 7-year audit log retention, GDPR/SOX-aligned.
-
----
-
-## 6. Key Design Decisions & Rationale
-
-- **Full Approval Chain Restart**: Required to prevent audit gaming—partial restarts would compromise governance (see Meeting Note 01_Discount_Depth 2.md).
-- **Event-Driven Microservices**: Promotes decoupled, scalable handling of UI, feedback, notifications, and logging (Azure Event Hubs + Functions).
-- **Immutable Audit Logging**: Centralized, always-on audit trace of all state changes/events is essential for compliance (Cosmos DB + Change Feed).
-- **Feedback Aggregation**: Feedback for each cycle is collated before presentation, ensuring the submitter understands all required changes at once (prevents piecemeal corrections/loops).
-
-## 7. Alternatives & Trade-offs
-
-- **Monolithic Implementation**: Simpler initial delivery but limits scale, testability, and audit/compliance (not chosen).
-- **No Full Chain Restart**: Lower user friction but enables process circumvention; fails audit requirements (rejected).
-- **Audit in SQL/Blob Only**: Higher performance for OLAP but not as flexible for event source compliance; Cosmos DB chosen for event streaming and flexible indexing.
-
-## 8. Security & Compliance
-
-- All endpoints/application components require Azure Managed Identity or AD role-based access.
-- All data is encrypted using Azure Key Vault keys.
-- Data access is logged for every read/write on sensitive objects (stories, feedback, audit log).
-- Audit log and feedback events preserved for 7 years, immutable, with regular compliance review.
-
-## 9. Observability & Monitoring
-
-- Centralized logging via Audit Log Service (Cosmos DB Change Feed, Event Hubs forwarding to Azure Monitor).
-- Alerting for:
-  - Notification delivery failures
-  - SLA breach on approvals (Deal Desk >24h, VP Sales >48h, auto-escalation)
-  - Audit gap or data integrity issue
-
-- Exposed Prometheus/OpenTelemetry endpoints for metrics scraping (latency, throughput, error count).
+#### 2. Teams Notification
+- **Service:** Custom Apex class `TeamsNotificationService`
+- **Security:** `with sharing`, `SECURITY_ENFORCED`, batching for scale
+- **Bulk DML:** Batch Opportunities needing notification
+- **External API:** MS Teams webhook, retry/failure log
+- **Logic:** Construct context-aware payload for Opportunity
 
 ---
 
-## 10. Migration/Deployment & CI/CD
+### D. Rejection Comments Aggregator
+- **Service:** Record-triggered update on ProcessInstanceStep (on rejection)
+- **Logic:** Aggregates comments from Finance + Deal Desk and pushes to Opportunity.Description
+- **Audit:** Tracks which comments were sourced/combined
 
-- Infrastructure as Code: Terraform for all resource provisioning (Cosmos DB, Functions, Event Hubs, Communication Services, Key Vault, RBAC policies)
-- CI/CD: GitHub Actions auto-build, test, and deploy all workflow logic. Canary environments for approval and rollback. Manual approval required for production promotion.
-- Database migration scripts versioned in repository; schema validated on CI build.
-- Managed identities assigned strictly via Terraform RBAC definitions.
+### E. Restart Approval Flow
+- **Trigger:** Record-triggered flow (before save)
+- **Entry Condition:** ISCHANGED(StageName) && StageName == 'Re-Submitted'
+- **Steps:**
+   1. Detect prior approvals
+   2. Reset statuses
+   3. Sequentially relaunch both tracks
+- **Audit:** Track restart reason/time; reset actions
 
-## 11. Appendix: Sample Event Flows
+### F. Auto-Approval Updater
+- **Trigger:** Entry Criteria: Opportunity.Type == 'Renewal' && Discount == 0
+- **Action:** Set StageName = 'Approved' via flow
+- **Audit:** Log auto-approval actions
 
-### Submission/Resubmission Cycle
-1. User submits story/opportunity via UI
-2. Workflow Engine triggers: Deal Desk review
-3. If rejected: Feedback is aggregated, user is notified, can resubmit
-4. On resubmission: Approval chain restarts (Deal Desk > VP Sales if required)
-5. Each rejection/resubmission event logged
-6. Multiple cycles supported, all events auditable
-
-### Notification SLA Escalation
-- Deal Desk (24h), VP Sales (48h) SLAs monitored; missed SLAs auto-escalate notifications and log breach event
-- Finance receives informational notification for VP Sales-level events
+### G. Permission and Security Controls
+- All flows/classes are built with `with sharing` and `SECURITY_ENFORCED`
+- Enforce FLS at every data access point
+- Apex must never perform DML in loops; batched logic for all API calls
+- Audit changes via ProcessInstanceStep and Opportunity history
+- No direct user access to approval metadata
 
 ---
+
+## 7. Non-Functional Requirements (Explicit Values)
+- **Latency (Process trigger):** <2s (p99)
+- **SLA Adherence:** >99.9% approvals escalated/notified on time
+- **Notification Delivery:** Email and Teams notification >99% delivered/attempted within 10s
+- **Availability:** 99.95% for approval process functions
+- **Audit Coverage:** 100% of approval, rejection, and escalation actions tracked
+- **Security Compliance:** 100% FLS, org-wide security policies enforced
+
+---
+
+## 8. Alternatives and Trade-Offs
+- **Single-Track vs Parallel Approval:**
+  - *Chosen*: Parallel, to reduce bottlenecks. *Trade-off*: slightly greater process complexity, but dramatically improved speed and transparency.
+  - *Alternative*: Sequential approval (as per older notes). Would slow velocity and reduce compliance with emerging business needs.
+- **Teams (MS) vs Slack Notification:**
+  - *Chosen*: MS Teams, matching recipient team usage. *Trade-off*: native Slack integration is faster/more robust but not aligned with Finance/approver group tools.
+- **Dynamic Approver Lookup vs Hardcoded:**
+  - *Chosen*: Dynamic, to ensure maintainability and compliance with org structure changes. *Trade-off*: Slight increase in metadata/config effort vs hardcoding.
+- **Apex Batch + Flow Orchestrations vs Declarative Workflow Only:**
+  - *Chosen*: Apex + Flow for batch/retry, scale, error handling. *Trade-off*: Increased codebase size and CI/CD complexity.
+
+---
+
+## 9. Deployment and Rollback
+- **Order:** Ensure custom field (Total_Contract_Value__c) is deployed before approvals, then email/Teams notification, comment aggregation, and finally restart/auto-approval flows.
+- **Rollback:** Rollback by reverting metadata to previous state, remove or disable triggering flows/classes, and delete related approval/rejection records.
+- **CI/CD:** Use Salesforce DX or similar, target <15 min deploy, test in full/partial sandbox first
+- **Permission Assignment:** After deploy, assign custom permissions for new fields/approval logic to users via permission sets.
+- **Verification:** Smoke test each approval trigger and notification path; check audit log completeness
+
+## 10. Observability and Error Handling
+- **Logging:** All notification failures and escalation actions are logged in custom object or Salesforce error log.
+- **Retry:** Any notification (email/Teams) failure is retried up to 3 times; on final failure, log and alert admin via Chatter.
+- **SLA/Timer Functions:** Scheduled job invoked hourly to monitor approval pendency and fire SLA escalations.
+- **Alerting:** If approval process fails (code/flow error), Chatter alerting to IT Admin group within 2 min.
+
+## 11. Rationale & Final Notes
+This design directly addresses business and compliance needs by:
+- Enforcing dual-track, value-based approval for high-value and high-discount deals
+- Providing actionable escalations, cut-and-dry audit trail, and predictable customer experience
+- Using robust (with sharing, SECURITY_ENFORCED, no DML in loops) Apex patterns
+- Maximizing reliability via parallel track, audit, retries, clear alerting/rollback
+
+---
+
+# End of TSD
