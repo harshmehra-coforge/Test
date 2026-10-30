@@ -1,397 +1,200 @@
-# Product Backlog: Storytelling Application
-
-## EPIC 1: Story Creation & Publishing
-
-### Feature 1.1: Multimedia Story Creation
-- **User Story 1.1.1 (UI):** As a user, I want to create a story using text, images, audio, and video so that I can express myself in multiple formats.
-  - **Scenarios:**
-    - Happy Path: User successfully uploads all media types and saves the story draft.
-    - Boundary: User attempts to upload unsupported file types; receives error message.
-    - Error: User loses connection during upload; system prompts to retry or save progress.
-  - **DoR:** UI wireframes, supported media formats, error handling defined.
-  - **DoD:** Story draft saved, all media types rendered, error messages shown for invalid uploads.
-  - **Business Value:** Drives user engagement and creativity.
-  - **Dependencies:** Media processing backend, UI design.
-  - **References:** BR-01, BR-12
-
-- **User Story 1.1.2 (BE):** As a backend developer, I want to store and retrieve multimedia story content securely so that stories are available for users and comply with privacy standards.
-  - **Scenarios:**
-    - Happy Path: Story content is stored and retrieved without data loss.
-    - Boundary: Large file uploads are handled gracefully.
-    - Error: Storage failure triggers alert and retry logic.
-  - **DoR:** Storage schema, security requirements, test cases.
-  - **DoD:** Content stored/retrieved, security validated, error handling tested.
-  - **Business Value:** Ensures data integrity and compliance.
-  - **Dependencies:** Database, storage service.
-  - **References:** BR-01, BR-14
-
-- **User Story 1.1.3 (QA):** As a QA engineer, I want to verify that all media types can be uploaded, previewed, and saved so that users have a seamless experience.
-  - **Scenarios:**
-    - Happy Path: All supported media types pass upload and preview tests.
-    - Boundary: Unsupported formats rejected.
-    - Error: Upload interruptions handled gracefully.
-  - **DoR:** Test plan, acceptance criteria.
-  - **DoD:** All tests pass, bugs logged and resolved.
-  - **Business Value:** Guarantees quality and usability.
-  - **Dependencies:** UI, BE stories.
-  - **References:** BR-01, BR-12
-
-### Feature 1.2: Story Publishing & Sharing
-- **User Story 1.2.1 (UI):** As a user, I want to publish my story and share it via platform links or social channels so that others can experience my work.
-  - **Scenarios:**
-    - Happy Path: Story published and shareable link generated.
-    - Boundary: User attempts to share unpublished story; receives prompt.
-    - Error: Publishing fails; user receives retry option.
-  - **DoR:** UI design, sharing options, error handling.
-  - **DoD:** Story published, link generated, errors handled.
-  - **Business Value:** Increases reach and engagement.
-  - **Dependencies:** Publishing backend, UI.
-  - **References:** BR-02
-
-- **User Story 1.2.2 (BE):** As a backend developer, I want to manage story publishing workflows and generate shareable links so that stories are accessible externally.
-  - **Scenarios:**
-    - Happy Path: Story published, link generated and stored.
-    - Boundary: Link generation for large stories.
-    - Error: Publishing workflow fails; logs error.
-  - **DoR:** Publishing logic, link generation, error handling.
-  - **DoD:** Stories published, links generated, errors logged.
-  - **Business Value:** Enables external sharing.
-  - **Dependencies:** Database, link service.
-  - **References:** BR-02
-
-- **User Story 1.2.3 (QA):** As a QA engineer, I want to test story publishing and sharing so that users can reliably share their stories.
-  - **Scenarios:**
-    - Happy Path: Stories published and links work.
-    - Boundary: Unpublished stories not shareable.
-    - Error: Publishing errors handled.
-  - **DoR:** Test cases, acceptance criteria.
-  - **DoD:** All tests pass, bugs resolved.
-  - **Business Value:** Ensures reliability.
-  - **Dependencies:** UI, BE stories.
-  - **References:** BR-02
-
-## EPIC 2: Moderation & Approval Workflow
-
-### Feature 2.1: Moderation Workflow
-- **User Story 2.1.1 (UI):** As a moderator, I want to review flagged stories and approve or reject them so that only appropriate content is published.
-  - **Scenarios:**
-    - Happy Path: Moderator reviews and approves/rejects flagged story.
-    - Boundary: Multiple stories flagged simultaneously.
-    - Error: Approval action fails; moderator notified.
-  - **DoR:** UI for moderation, approval/rejection logic.
-  - **DoD:** Stories reviewed, actions logged.
-  - **Business Value:** Maintains content quality.
-  - **Dependencies:** Moderation backend, UI.
-  - **References:** BR-03
-
-- **User Story 2.1.2 (BE):** As a backend developer, I want to implement tiered approval and audit trails for moderation so that all actions are tracked and compliant.
-  - **Scenarios:**
-    - Happy Path: Approval actions logged, audit trail maintained.
-    - Boundary: High volume of moderation actions.
-    - Error: Audit log failure triggers alert.
-  - **DoR:** Audit schema, moderation logic.
-  - **DoD:** Actions logged, audit trail accessible.
-  - **Business Value:** Ensures compliance.
-  - **Dependencies:** Database, audit service.
-  - **References:** BR-03, BR-08
-
-- **User Story 2.1.3 (QA):** As a QA engineer, I want to test moderation workflows and audit logging so that compliance is maintained.
-  - **Scenarios:**
-    - Happy Path: Moderation actions logged and retrievable.
-    - Boundary: High volume tested.
-    - Error: Audit log errors handled.
-  - **DoR:** Test cases, acceptance criteria.
-  - **DoD:** All tests pass, bugs resolved.
-  - **Business Value:** Guarantees compliance.
-  - **Dependencies:** UI, BE stories.
-  - **References:** BR-03, BR-08
-
-### Feature 2.2: Featured Content Approval
-- **User Story 2.2.1 (UI):** As a moderator, I want to nominate stories for "Featured" status and trigger multi-tier approval so that high-quality content is highlighted.
-  - **Scenarios:**
-    - Happy Path: Story nominated and approval workflow started.
-    - Boundary: Multiple nominations.
-    - Error: Workflow fails; moderator notified.
-  - **DoR:** UI for nomination, approval workflow.
-  - **DoD:** Stories nominated, workflow triggered.
-  - **Business Value:** Highlights quality content.
-  - **Dependencies:** Approval backend, UI.
-  - **References:** BR-04
-
-- **User Story 2.2.2 (BE):** As a backend developer, I want to implement multi-tier approval and SLA/escalation tracking for featured content so that workflows are robust and timely.
-  - **Scenarios:**
-    - Happy Path: Approval workflow completes within SLA.
-    - Boundary: SLA breached triggers escalation.
-    - Error: Workflow errors logged.
-  - **DoR:** Workflow logic, SLA/escalation rules.
-  - **DoD:** Workflows tracked, escalations handled.
-  - **Business Value:** Ensures timely approvals.
-  - **Dependencies:** Database, workflow engine.
-  - **References:** BR-04, BR-09
-
-- **User Story 2.2.3 (QA):** As a QA engineer, I want to test featured content approval workflows and SLA/escalation so that high-quality content is reliably featured.
-  - **Scenarios:**
-    - Happy Path: Approvals within SLA, escalations tested.
-    - Boundary: Multiple workflows.
-    - Error: Workflow errors handled.
-  - **DoR:** Test cases, acceptance criteria.
-  - **DoD:** All tests pass, bugs resolved.
-  - **Business Value:** Ensures reliability.
-  - **Dependencies:** UI, BE stories.
-  - **References:** BR-04, BR-09
-
-## EPIC 3: User Profiles & Social Engagement
-
-### Feature 3.1: User Profiles
-- **User Story 3.1.1 (UI):** As a user, I want to create and edit my profile so that I can personalize my experience.
-  - **Scenarios:**
-    - Happy Path: Profile created/edited successfully.
-    - Boundary: Invalid profile data rejected.
-    - Error: Profile update fails; user notified.
-  - **DoR:** UI for profile, validation rules.
-  - **DoD:** Profile created/edited, errors handled.
-  - **Business Value:** Personalizes user experience.
-  - **Dependencies:** Profile backend, UI.
-  - **References:** BR-05
-
-- **User Story 3.1.2 (BE):** As a backend developer, I want to store and manage user profiles securely so that user data is protected.
-  - **Scenarios:**
-    - Happy Path: Profile data stored/retrieved securely.
-    - Boundary: Large profile data.
-    - Error: Storage errors handled.
-  - **DoR:** Storage schema, security requirements.
-  - **DoD:** Data stored/retrieved, security validated.
-  - **Business Value:** Protects user data.
-  - **Dependencies:** Database, security service.
-  - **References:** BR-05, BR-14
-
-- **User Story 3.1.3 (QA):** As a QA engineer, I want to test profile creation/editing so that users have a reliable experience.
-  - **Scenarios:**
-    - Happy Path: Profile created/edited.
-    - Boundary: Invalid data rejected.
-    - Error: Storage errors handled.
-  - **DoR:** Test cases, acceptance criteria.
-  - **DoD:** All tests pass, bugs resolved.
-  - **Business Value:** Ensures reliability.
-  - **Dependencies:** UI, BE stories.
-  - **References:** BR-05
-
-### Feature 3.2: Social Engagement
-- **User Story 3.2.1 (UI):** As a user, I want to comment, like, and follow other users so that I can engage with the community.
-  - **Scenarios:**
-    - Happy Path: User comments, likes, follows successfully.
-    - Boundary: Spam detection triggers moderation.
-    - Error: Engagement action fails; user notified.
-  - **DoR:** UI for engagement, moderation logic.
-  - **DoD:** Actions completed, errors handled.
-  - **Business Value:** Drives community engagement.
-  - **Dependencies:** Engagement backend, UI.
-  - **References:** BR-05
-
-- **User Story 3.2.2 (BE):** As a backend developer, I want to manage comments, likes, and follows so that engagement data is tracked and moderated.
-  - **Scenarios:**
-    - Happy Path: Engagement actions stored and retrievable.
-    - Boundary: High volume of engagement.
-    - Error: Storage errors handled.
-  - **DoR:** Storage schema, moderation logic.
-  - **DoD:** Data stored, moderation applied.
-  - **Business Value:** Tracks engagement.
-  - **Dependencies:** Database, moderation service.
-  - **References:** BR-05
-
-- **User Story 3.2.3 (QA):** As a QA engineer, I want to test engagement features so that users can reliably interact.
-  - **Scenarios:**
-    - Happy Path: Engagement actions tested.
-    - Boundary: Spam detection tested.
-    - Error: Storage errors handled.
-  - **DoR:** Test cases, acceptance criteria.
-  - **DoD:** All tests pass, bugs resolved.
-  - **Business Value:** Ensures reliability.
-  - **Dependencies:** UI, BE stories.
-  - **References:** BR-05
-
-## EPIC 4: Notifications & Workflow Events
-
-### Feature 4.1: Notification System
-- **User Story 4.1.1 (UI):** As a user, I want to receive notifications for approvals, rejections, feedback, and workflow milestones so that I stay informed.
-  - **Scenarios:**
-    - Happy Path: Notifications received for all workflow events.
-    - Boundary: High volume of notifications.
-    - Error: Notification delivery fails; retry logic applied.
-  - **DoR:** UI for notifications, delivery logic.
-  - **DoD:** Notifications delivered, errors handled.
-  - **Business Value:** Keeps users informed.
-  - **Dependencies:** Notification backend, UI.
-  - **References:** BR-06
-
-- **User Story 4.1.2 (BE):** As a backend developer, I want to send automated notifications for workflow events so that all stakeholders are updated.
-  - **Scenarios:**
-    - Happy Path: Notifications sent for all events.
-    - Boundary: High volume handled.
-    - Error: Delivery errors logged.
-  - **DoR:** Notification logic, error handling.
-  - **DoD:** Notifications sent, errors logged.
-  - **Business Value:** Ensures communication.
-  - **Dependencies:** Notification service, workflow engine.
-  - **References:** BR-06
-
-- **User Story 4.1.3 (QA):** As a QA engineer, I want to test notification delivery for workflow events so that users reliably receive updates.
-  - **Scenarios:**
-    - Happy Path: Notifications delivered.
-    - Boundary: High volume tested.
-    - Error: Delivery errors handled.
-  - **DoR:** Test cases, acceptance criteria.
-  - **DoD:** All tests pass, bugs resolved.
-  - **Business Value:** Ensures reliability.
-  - **Dependencies:** UI, BE stories.
-  - **References:** BR-06
-
-## EPIC 5: Reporting, Audit & Compliance
-
-### Feature 5.1: Reporting & Analytics Dashboard
-- **User Story 5.1.1 (UI):** As an administrator, I want to view dashboards reporting story volume, approval metrics, and compliance events so that I can monitor platform health.
-  - **Scenarios:**
-    - Happy Path: Dashboard displays all metrics.
-    - Boundary: Large data sets handled.
-    - Error: Dashboard fails to load; admin notified.
-  - **DoR:** UI for dashboard, data sources.
-  - **DoD:** Metrics displayed, errors handled.
-  - **Business Value:** Enables monitoring.
-  - **Dependencies:** Reporting backend, UI.
-  - **References:** BR-07
-
-- **User Story 5.1.2 (BE):** As a backend developer, I want to aggregate and report story, approval, and compliance metrics so that administrators have actionable insights.
-  - **Scenarios:**
-    - Happy Path: Metrics aggregated and reported.
-    - Boundary: High volume handled.
-    - Error: Reporting errors logged.
-  - **DoR:** Aggregation logic, reporting schema.
-  - **DoD:** Metrics reported, errors logged.
-  - **Business Value:** Provides insights.
-  - **Dependencies:** Database, reporting engine.
-  - **References:** BR-07
-
-- **User Story 5.1.3 (QA):** As a QA engineer, I want to test dashboard reporting so that administrators can reliably monitor platform health.
-  - **Scenarios:**
-    - Happy Path: Metrics displayed.
-    - Boundary: Large data sets tested.
-    - Error: Reporting errors handled.
-  - **DoR:** Test cases, acceptance criteria.
-  - **DoD:** All tests pass, bugs resolved.
-  - **Business Value:** Ensures reliability.
-  - **Dependencies:** UI, BE stories.
-  - **References:** BR-07
-
-### Feature 5.2: Audit Logging & Governance
-- **User Story 5.2.1 (BE):** As a backend developer, I want to log all critical workflow actions and provide audit trails so that governance reviews are possible.
-  - **Scenarios:**
-    - Happy Path: Actions logged and audit trails accessible.
-    - Boundary: High volume of logs.
-    - Error: Logging errors handled.
-  - **DoR:** Logging schema, audit requirements.
-  - **DoD:** Logs accessible, errors handled.
-  - **Business Value:** Enables governance.
-  - **Dependencies:** Database, audit service.
-  - **References:** BR-08
-
-- **User Story 5.2.2 (QA):** As a QA engineer, I want to test audit logging and governance so that compliance is maintained.
-  - **Scenarios:**
-    - Happy Path: Audit logs retrievable.
-    - Boundary: High volume tested.
-    - Error: Logging errors handled.
-  - **DoR:** Test cases, acceptance criteria.
-  - **DoD:** All tests pass, bugs resolved.
-  - **Business Value:** Ensures compliance.
-  - **Dependencies:** BE stories.
-  - **References:** BR-08
-
-### Feature 5.3: SLA & Escalation Management
-- **User Story 5.3.1 (BE):** As a backend developer, I want to set SLAs for approval tiers and automate escalation if thresholds are breached so that workflows are timely.
-  - **Scenarios:**
-    - Happy Path: SLAs set and escalations triggered as needed.
-    - Boundary: Multiple escalations.
-    - Error: Escalation errors handled.
-  - **DoR:** SLA rules, escalation logic.
-  - **DoD:** SLAs enforced, escalations handled.
-  - **Business Value:** Ensures timely workflow.
-  - **Dependencies:** Workflow engine, database.
-  - **References:** BR-09
-
-- **User Story 5.3.2 (QA):** As a QA engineer, I want to test SLA and escalation management so that workflows remain timely and compliant.
-  - **Scenarios:**
-    - Happy Path: SLAs enforced, escalations tested.
-    - Boundary: Multiple workflows.
-    - Error: Escalation errors handled.
-  - **DoR:** Test cases, acceptance criteria.
-  - **DoD:** All tests pass, bugs resolved.
-  - **Business Value:** Ensures reliability.
-  - **Dependencies:** BE stories.
-  - **References:** BR-09
-
-### Feature 5.4: Rejection Handling & Resubmission
-- **User Story 5.4.1 (UI):** As a user, I want to receive feedback and resubmit stories after rejection so that I can improve and try again.
-  - **Scenarios:**
-    - Happy Path: User receives feedback and resubmits story.
-    - Boundary: Multiple rejections.
-    - Error: Resubmission fails; user notified.
-  - **DoR:** UI for feedback, resubmission logic.
-  - **DoD:** Feedback delivered, resubmission enabled.
-  - **Business Value:** Supports improvement.
-  - **Dependencies:** Feedback backend, UI.
-  - **References:** BR-10
-
-- **User Story 5.4.2 (BE):** As a backend developer, I want to enable feedback notifications and resubmission workflows so that rejected stories can be improved and resubmitted.
-  - **Scenarios:**
-    - Happy Path: Feedback sent, resubmission enabled.
-    - Boundary: Multiple resubmissions.
-    - Error: Workflow errors handled.
-  - **DoR:** Feedback logic, resubmission workflow.
-  - **DoD:** Feedback delivered, resubmissions enabled.
-  - **Business Value:** Supports improvement.
-  - **Dependencies:** Database, workflow engine.
-  - **References:** BR-10
-
-- **User Story 5.4.3 (QA):** As a QA engineer, I want to test feedback and resubmission workflows so that users can improve and resubmit stories reliably.
-  - **Scenarios:**
-    - Happy Path: Feedback delivered, resubmissions tested.
-    - Boundary: Multiple workflows.
-    - Error: Workflow errors handled.
-  - **DoR:** Test cases, acceptance criteria.
-  - **DoD:** All tests pass, bugs resolved.
-  - **Business Value:** Ensures reliability.
-  - **Dependencies:** UI, BE stories.
-  - **References:** BR-10
-
-## EPIC 6: Go-Live & Release Planning
-
-### Feature 6.1: Go-Live Communication
-- **User Story 6.1.1 (UI):** As a project manager, I want to communicate go-live and release dates to all stakeholders so that everyone is informed.
-  - **Scenarios:**
-    - Happy Path: Go-live date communicated.
-    - Boundary: Multiple releases.
-    - Error: Communication fails; retry logic applied.
-  - **DoR:** UI for communication, release logic.
-  - **DoD:** Dates communicated, errors handled.
-  - **Business Value:** Ensures stakeholder alignment.
-  - **Dependencies:** Communication backend, UI.
-  - **References:** BR-11
-
-- **User Story 6.1.2 (QA):** As a QA engineer, I want to verify go-live communication so that stakeholders are reliably informed.
-  - **Scenarios:**
-    - Happy Path: Dates communicated.
-    - Boundary: Multiple releases tested.
-    - Error: Communication errors handled.
-  - **DoR:** Test cases, acceptance criteria.
-  - **DoD:** All tests pass, bugs resolved.
-  - **Business Value:** Ensures reliability.
-  - **Dependencies:** UI stories.
-  - **References:** BR-11
-
+### EPIC: Finance Approval Workflow for High-Value Deals
 ---
+**Scope:**
+- Implement parallel Finance approval track for Opportunities with Total Contract Value (TCV) > $500K
+- Internal Finance routing: Director ($500K–$2M), CFO (> $2M)
+- Integration with existing Deal Desk approval (discount-based)
+- Notification and reporting enhancements for Finance and Sales Ops
 
-**References:**
-- BA-dynamic-agent/BRD.md (BR-01 to BR-17)
+**Business Objectives:**
+- Prevent closure of high-value deals without Finance review
+- Reduce post-close revenue recognition issues and clean-up
+- Enable genuine Finance review without overloading the team
+- Improve auditability and transparency of deal approvals
 
----
+**Personas:**
+- Sales Operations
+- Finance Director
+- CFO
+- Deal Desk
+- FP&A
+- Salesforce Admin
 
-**End of Backlog**
+**Considerations:**
+- Parallel approval to minimize cycle time
+- Internal Finance sub-tiers for Director/CFO
+- Notification via email and Teams channel
+- Reporting for queue, approval time, rejection reasons
+- Handling of renewals (parked for BRD)
+
+## 1 FEATURE: Parallel Finance Approval Track
+    Definition of Done (DoD):
+    - Finance approval is triggered for any Opportunity with TCV > $500K
+    - Approval runs in parallel with Deal Desk (discount-based) approval
+    - Internal routing: Director ($500K–$2M), CFO (> $2M)
+    - Both approvals required for deal closure
+    - Rejection from either track returns combined comments to rep
+    - Re-submission restarts both tracks
+
+# 1.1 STORY: Finance Approval Trigger (Backend)
+    **Persona:** Backend Developer
+    **Description:** Implement automation to trigger Finance approval for Opportunities with TCV > $500K, running in parallel with Deal Desk approval.
+    
+    **Scenarios:**
+    - Happy Path: Opportunity with TCV $600K triggers Finance approval and Deal Desk approval simultaneously.
+    - Boundary: Opportunity with TCV exactly $500K triggers Finance approval.
+    - Error: TCV field not populated, approval not triggered; log error and notify admin.
+    - Parallel: Both approvals triggered; cycle time is max of the two.
+    - Rejection: Either track rejects, deal returns to rep with comments.
+    
+    **Definition of Ready (DoR):**
+    - TCV field available and populated on Opportunity
+    - Deal Desk approval logic documented
+    - Finance approvers (Director/CFO) confirmed
+    
+    **Definition of Done (DoD):**
+    - Automation triggers Finance approval for TCV > $500K
+    - Approval runs in parallel with Deal Desk
+    - Internal routing to Director/CFO based on TCV
+    - Combined comments returned on rejection
+    - Re-submission resets both tracks
+    
+    **Business Value:**
+    - Ensures Finance reviews all high-value deals before closure
+    - Reduces audit and revenue recognition risks
+    
+    **Dependencies:**
+    - Salesforce Opportunity object
+    - CPQ TCV field
+    - Deal Desk approval logic
+    - Finance approver assignment
+    
+    **References:**
+        [1] Meeting_Note_02_High_Value_Deal.md
+
+# 1.2 STORY: Finance Approval UI (UI)
+    **Persona:** UI Developer
+    **Description:** Update Salesforce UI to display Finance approval status, approver assignment, and rejection comments for Opportunities with TCV > $500K.
+
+    **Scenarios:**
+    - Happy Path: Rep sees Finance approval status and assigned approver on Opportunity page.
+    - Boundary: TCV exactly $500K, UI shows Finance approval required.
+    - Error: UI fails to display approval status; fallback error message shown.
+    - Rejection: UI displays combined comments from Finance and Deal Desk.
+
+    **Definition of Ready (DoR):**
+    - UI wireframes for approval status
+    - Opportunity object fields available
+    - Approval status logic defined
+
+    **Definition of Done (DoD):**
+    - UI displays Finance approval status and assigned approver
+    - UI shows rejection comments from both tracks
+    - UI handles error states gracefully
+
+    **Business Value:**
+    - Improves transparency for reps and managers
+    - Reduces confusion and cycle time
+
+    **Dependencies:**
+    - Salesforce UI components
+    - Approval status logic
+    - Opportunity object
+
+    **References:**
+        [1] Meeting_Note_02_High_Value_Deal.md
+
+# 1.3 STORY: Finance Approval Notification (Backend)
+    **Persona:** Backend Developer
+    **Description:** Implement notification logic to send Finance approval requests via email and Teams channel post for TCV > $500K deals.
+
+    **Scenarios:**
+    - Happy Path: Finance receives email and Teams channel post for new approval request.
+    - Boundary: TCV exactly $500K triggers notification.
+    - Error: Teams connector fails; fallback to email only.
+    - Rejection: Notification includes combined comments on rejection.
+
+    **Definition of Ready (DoR):**
+    - Email template approved
+    - Teams channel connector available
+    - Finance team distribution list confirmed
+
+    **Definition of Done (DoD):**
+    - Notification sent via email and Teams channel for each approval request
+    - Error handling for failed Teams post
+    - Combined comments included in rejection notification
+
+    **Business Value:**
+    - Ensures Finance team visibility and timely action
+    - Reduces missed approvals
+
+    **Dependencies:**
+    - MS Teams connector
+    - Email system
+    - Salesforce approval process
+
+    **References:**
+        [1] Meeting_Note_02_High_Value_Deal.md
+
+# 1.4 STORY: Finance Approval Reporting (Backend)
+    **Persona:** Backend Developer
+    **Description:** Create monthly dashboard/report for Finance and Sales Ops showing deals in Finance queue, approval time by sub-tier, and rejection reasons.
+
+    **Scenarios:**
+    - Happy Path: Dashboard displays all required metrics for current month.
+    - Boundary: No deals in queue; dashboard shows zero state.
+    - Error: Data fetch fails; dashboard displays error message.
+    - Sub-tier: Approval time split by Director vs CFO.
+    - Rejection: Dashboard lists rejection reasons for each deal.
+
+    **Definition of Ready (DoR):**
+    - List of required fields from Finance
+    - Access to approval history data
+    - Dashboard requirements confirmed
+
+    **Definition of Done (DoD):**
+    - Dashboard/report available to Finance and Sales Ops
+    - Metrics include queue, approval time by sub-tier, rejection reasons
+    - Handles zero-state and error conditions
+
+    **Business Value:**
+    - Improves transparency and auditability
+    - Enables process improvement and workload management
+
+    **Dependencies:**
+    - Salesforce reporting tools
+    - Approval history data
+    - Finance/Sales Ops dashboard access
+
+    **References:**
+        [1] Meeting_Note_02_High_Value_Deal.md
+
+# 1.5 STORY: Finance Approval Rejection Handling (Backend)
+    **Persona:** Backend Developer
+    **Description:** Implement logic to return combined rejection comments from both approval tracks and reset both tracks on re-submission.
+
+    **Scenarios:**
+    - Happy Path: Rep receives combined comments from Finance and Deal Desk on rejection.
+    - Boundary: Only one track started; only that track's comments returned.
+    - Error: Comments fail to aggregate; fallback to individual comments.
+    - Re-submission: Both tracks reset and start from step 1.
+
+    **Definition of Ready (DoR):**
+    - Comment aggregation logic defined
+    - Approval process reset logic available
+
+    **Definition of Done (DoD):**
+    - Combined comments returned on rejection
+    - Re-submission resets both approval tracks
+    - Error handling for comment aggregation
+
+    **Business Value:**
+    - Ensures clear feedback to reps
+    - Prevents partial approvals from carrying over
+
+    **Dependencies:**
+    - Approval process logic
+    - Comment aggregation utility
+
+    **References:**
+        [1] Meeting_Note_02_High_Value_Deal.md
