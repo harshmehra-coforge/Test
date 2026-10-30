@@ -1,6 +1,4 @@
 """
-Test stub for notification module.
+Notification logic tests
 """
-def test_notification_delivery():
-    # TODO: Implement notification delivery tests
-    pass
+# TODO: Test notification sending and retry logic
