@@ -1,9 +1,4 @@
 """
-Pytest configuration and fixtures.
+Pytest configuration and fixtures
 """
-import pytest
-
-@pytest.fixture(scope="session")
-def test_app():
-    # TODO: Setup FastAPI test client
-    pass
+# TODO: Add fixtures for test database, mock integrations
