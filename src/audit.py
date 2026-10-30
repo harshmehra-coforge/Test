@@ -1,14 +1,14 @@
 """
-FastAPI router for audit log endpoints.
+AuditLog data model
 """
-from fastapi import APIRouter, Depends, HTTPException
-from src.service.audit_log_service import AuditLogService
-from src.models.audit_log import AuditLogEntry
+from pydantic import BaseModel
+from typing import Any, Dict
+from datetime import datetime
 
-router = APIRouter()
-
-@router.post("/log", response_model=None)
-async def log_event(entry: AuditLogEntry, service: AuditLogService = Depends()):
-    """Log an auditable event."""
-    # TODO: Wire up service and implement logic
-    raise NotImplementedError
+class AuditLog(BaseModel):
+    record_type: str
+    entity_id: str
+    action: str
+    user: str
+    timestamp: datetime
+    metadata: Dict[str, Any]
