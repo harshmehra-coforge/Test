@@ -1,6 +1,4 @@
-"""
-Test stubs for BookingService.
-"""
-def test_book_flight():
-    # TODO: Test BookingService.book_flight
+"""Test BookingService logic."""
+def test_create_booking():
+    # TODO: Test create_booking logic
     pass
