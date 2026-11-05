@@ -1,23 +1,19 @@
-"""
-Main entrypoint for the BizWeb Flight-Pass microservices application.
-Initializes FastAPI app, registers routers, and configures core services.
-"""
+"""FastAPI app factory and startup wiring for Flight-Pass microservices."""
 from fastapi import FastAPI
-from core.config import settings
-from core.errors import add_error_handlers
-from api.routes import purchase, credit, booking, admin, notification, audit
+from src.api.routes import bundles, credits, users, booking, admin, reporting
 
-app = FastAPI(title="BizWeb Flight-Pass API")
 
-# Register routers
-app.include_router(purchase.router)
-app.include_router(credit.router)
-app.include_router(booking.router)
-app.include_router(admin.router)
-app.include_router(notification.router)
-app.include_router(audit.router)
+def create_app() -> FastAPI:
+    """Create and configure FastAPI app."""
+    app = FastAPI(title="Flight-Pass Service")
+    # Register routers
+    app.include_router(bundles.router)
+    app.include_router(credits.router)
+    app.include_router(users.router)
+    app.include_router(booking.router)
+    app.include_router(admin.router)
+    app.include_router(reporting.router)
+    # TODO: Add startup/shutdown event handlers, middleware, DI wiring
+    return app
 
-# Add error handlers
-add_error_handlers(app)
-
-# TODO: Add startup/shutdown events, DI wiring, event bus, etc.
+app = create_app()
