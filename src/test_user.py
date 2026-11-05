@@ -1,6 +1,4 @@
-"""
-Test stubs for User model.
-"""
-def test_user_model():
-    # TODO: Test User model
+"""Test User model."""
+def test_user_schema():
+    # TODO: Test User schema
     pass
