@@ -1,6 +1,4 @@
-"""
-Test stubs for ReportingClient integration.
-"""
-def test_export_report():
-    # TODO: Test ReportingClient.export_report
+"""Test reporting endpoints."""
+def test_usage_report():
+    # TODO: Test usage report endpoint
     pass
