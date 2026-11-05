@@ -1,4 +1,4 @@
-# Dockerfile for BizWeb Flight-Pass microservices
+# Dockerfile for Flight-Pass Service
 FROM python:3.11-slim
 WORKDIR /app
 COPY requirements.txt ./
