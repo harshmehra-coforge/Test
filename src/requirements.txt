@@ -1,10 +1,14 @@
 fastapi
 uvicorn
 pydantic
-asyncpg
+azure-identity
 azure-cosmos
+psycopg2-binary
 redis
-pytest
 httpx
 python-dotenv
-# TODO: Add more dependencies as needed
+pytest
+pytest-asyncio
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-instrumentation-fastapi
