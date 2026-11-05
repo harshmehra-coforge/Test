@@ -1,4 +1,6 @@
-"""Test stub for audit reporting queries."""
-def test_get_deep_discount_approvals():
-    # TODO: Test reporting for >25% discount approvals
+"""
+Test stubs for ReportingClient integration.
+"""
+def test_export_report():
+    # TODO: Test ReportingClient.export_report
     pass
