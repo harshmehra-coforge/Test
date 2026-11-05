@@ -1,4 +1,6 @@
 """
-Audit logging logic tests
+Test stubs for audit endpoints.
 """
-# TODO: Test audit log writing and access
+def test_get_audit_logs():
+    # TODO: Test get_audit_logs endpoint
+    pass
