@@ -1,6 +1,4 @@
-"""
-Test stubs for credit assignment endpoints.
-"""
-def test_assign_credits():
-    # TODO: Test assign_credits endpoint
+"""Test Credit model."""
+def test_credit_schema():
+    # TODO: Test Credit schema
     pass
