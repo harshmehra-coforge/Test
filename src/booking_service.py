@@ -1,9 +1,13 @@
-"""
-Business logic for booking and redemption in Flight-Pass.
-Handles booking, credit redemption, Sabre integration, and audit.
-"""
+"""Business logic for booking and redemption (Sabre PSS/EMD-S integration)."""
 class BookingService:
-    def book_flight(self, booking_data: dict, user_id: str):
-        """Book a flight using credits."""
-        # TODO: Validate, redeem credits, integrate with Sabre, publish audit event
+    @staticmethod
+    def create_booking(booking_data: dict) -> dict:
+        """Create a booking and redeem credit (Sabre PSS/EMD-S)."""
+        # TODO: Implement booking creation logic
+        raise NotImplementedError
+
+    @staticmethod
+    def get_booking(booking_id: str) -> dict:
+        """Get booking details."""
+        # TODO: Implement booking retrieval logic
         raise NotImplementedError
