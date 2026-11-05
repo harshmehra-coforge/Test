@@ -1,4 +1,6 @@
 """
-Pytest configuration and fixtures
+Pytest fixtures for BizWeb Flight-Pass tests.
 """
-# TODO: Add fixtures for test database, mock integrations
+import pytest
+
+# TODO: Add fixtures for test DB, mock services, etc.
