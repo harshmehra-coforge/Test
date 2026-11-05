@@ -1,7 +1,7 @@
-"""Audit logging logic for approval workflow."""
-from typing import Any
+"""Logging setup for the application."""
+import logging
 
-def log_event(event_type: str, details: Any) -> None:
-    """Log an audit event (approval, rejection, notification, SLA breach, etc.)."""
-    # TODO: Integrate with Salesforce audit log or custom object
-    raise NotImplementedError
+def get_logger(name: str) -> logging.Logger:
+    """Get a configured logger."""
+    # TODO: Configure logger as per app needs
+    return logging.getLogger(name)
