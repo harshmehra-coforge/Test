@@ -1,22 +1,22 @@
-"""
-Configuration module for BizWeb Flight-Pass microservices.
-Loads settings from environment variables using Pydantic BaseSettings.
-"""
+"""App configuration and environment variable management."""
 from pydantic import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
-    app_name: str = "BizWeb Flight-Pass"
-    environment: str = "development"
-    debug: bool = True
-    postgres_dsn: str
-    cosmos_dsn: str
-    redis_url: str
-    eventhub_conn_str: str
-    azure_ad_tenant: str
-    azure_ad_client_id: str
-    azure_ad_client_secret: str
-    # Add more as needed
-
+    """App settings loaded from environment variables."""
+    ENV: str = "development"
+    COSMOS_DB_URI: str
+    COSMOS_DB_KEY: str
+    POSTGRES_URI: str
+    REDIS_URI: str
+    SABRE_PSS_API_URL: str
+    EMD_S_API_URL: str
+    WESTJET_DIGITAL_API_URL: str
+    WESTJET_LOYALTY_API_URL: str
+    AZURE_AD_TENANT_ID: str
+    AZURE_AD_CLIENT_ID: str
+    AZURE_AD_CLIENT_SECRET: str
+    KEY_VAULT_URI: str
     class Config:
         env_file = ".env"
 
