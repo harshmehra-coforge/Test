@@ -1,15 +1,12 @@
 """
-Pydantic models for Audit Log entity.
+Audit log models for Flight-Pass.
 """
 from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime
 
-class AuditLogEntry(BaseModel):
+class AuditLog(BaseModel):
     id: str
-    entity_type: str
+    user_id: str
     action: str
-    actor: str
-    timestamp: datetime
-    event_detail: dict
-    # TODO: Add additional fields for compliance/audit requirements
+    timestamp: str
+    details: dict
+    # TODO: Add more fields as needed
