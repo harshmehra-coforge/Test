@@ -1,6 +1,4 @@
-"""
-Test stubs for AdminService.
-"""
+"""Test AdminService logic."""
 def test_get_dashboard():
-    # TODO: Test AdminService.get_dashboard
+    # TODO: Test get_dashboard logic
     pass
