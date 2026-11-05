@@ -1,15 +1,12 @@
-"""
-Admin and reporting endpoints for Flight-Pass.
-Handles dashboards, reporting, and export features.
-"""
+"""Admin tools endpoints (credit/traveler/usage management)."""
 from fastapi import APIRouter, Depends
-from services.admin_service import AdminService
-from core.rbac import require_roles, Role
+from src.services.admin_service import AdminService
+from src.core.security import require_roles
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/dashboard")
-async def get_dashboard(user_role: Role = Depends()):
-    """Get admin dashboard data."""
-    # TODO: Call AdminService, aggregate/report data
+async def admin_dashboard(user=Depends(require_roles(["PassOwner", "Admin"]))) -> dict:
+    """Admin dashboard with credit, traveler, and usage stats."""
+    # TODO: Call AdminService.get_dashboard
     raise NotImplementedError
