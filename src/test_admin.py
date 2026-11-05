@@ -1,6 +1,4 @@
-"""
-Test stubs for admin endpoints.
-"""
-def test_get_dashboard():
-    # TODO: Test get_dashboard endpoint
+"""Test admin endpoints."""
+def test_admin_dashboard():
+    # TODO: Test admin dashboard endpoint
     pass
