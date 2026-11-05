@@ -1,8 +1,10 @@
-fastapi==0.110.0
-uvicorn[standard]==0.29.0
-pydantic==2.6.4
-aiohttp==3.9.5
-azure-cosmos==4.6.0
-slack_sdk==3.27.0
-pytest==8.1.1
-python-dotenv==1.0.1
+fastapi
+uvicorn
+pydantic
+asyncpg
+azure-cosmos
+redis
+pytest
+httpx
+python-dotenv
+# TODO: Add more dependencies as needed
