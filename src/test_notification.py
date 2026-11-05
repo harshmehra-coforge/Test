@@ -1,4 +1,6 @@
 """
-Notification logic tests
+Test stubs for notification endpoints.
 """
-# TODO: Test notification sending and retry logic
+def test_send_notification():
+    # TODO: Test send_notification endpoint
+    pass
