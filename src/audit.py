@@ -1,14 +1,15 @@
 """
-AuditLog data model
+Audit endpoints for Flight-Pass.
+Handles audit log access and compliance queries.
 """
-from pydantic import BaseModel
-from typing import Any, Dict
-from datetime import datetime
+from fastapi import APIRouter, Depends
+from services.audit_service import AuditService
+from core.rbac import require_roles, Role
 
-class AuditLog(BaseModel):
-    record_type: str
-    entity_id: str
-    action: str
-    user: str
-    timestamp: datetime
-    metadata: Dict[str, Any]
+router = APIRouter(prefix="/audit", tags=["audit"])
+
+@router.get("/logs")
+async def get_audit_logs(user_role: Role = Depends()):
+    """Retrieve audit logs."""
+    # TODO: Call AuditService, return logs
+    raise NotImplementedError
