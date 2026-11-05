@@ -1,14 +1,13 @@
-"""
-Repository for Audit Log entity (Cosmos DB access).
-"""
-from typing import Optional
-from src.models.audit_log import AuditLogEntry
-
+"""PostgreSQL access for AuditLog entities."""
 class AuditLogRepository:
-    def __init__(self, db_client):
-        self.db_client = db_client
+    @staticmethod
+    def create_log(log_data: dict) -> dict:
+        """Create a new AuditLog in PostgreSQL."""
+        # TODO: Implement DB insert logic
+        raise NotImplementedError
 
-    async def save_audit_log(self, entry: AuditLogEntry) -> None:
-        """Save an audit log entry."""
-        # TODO: Implement Cosmos DB insert logic
+    @staticmethod
+    def get_log(event_id: str) -> dict:
+        """Retrieve an AuditLog by event ID."""
+        # TODO: Implement DB retrieval logic
         raise NotImplementedError
