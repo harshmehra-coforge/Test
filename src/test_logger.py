@@ -1,4 +1,4 @@
-"""Test stub for audit logger."""
-def test_log_event():
-    # TODO: Test audit logging
+"""Test logger utility."""
+def test_get_logger():
+    # TODO: Test get_logger utility
     pass
