@@ -1,9 +1,13 @@
-"""
-Business logic for credit assignment in Flight-Pass.
-Handles assignment, validation, and audit event publishing.
-"""
+"""Business logic for credit management and redemption."""
 class CreditService:
-    def assign_credits(self, assignment_data: dict, user_id: str):
-        """Assign credits to a user."""
-        # TODO: Validate, assign credits, publish audit event
+    @staticmethod
+    def redeem_credit(redeem_data: dict) -> dict:
+        """Redeem a flight credit for booking."""
+        # TODO: Implement credit redemption logic
+        raise NotImplementedError
+
+    @staticmethod
+    def get_credit(credit_id: str) -> dict:
+        """Get details of a credit."""
+        # TODO: Implement credit retrieval logic
         raise NotImplementedError
