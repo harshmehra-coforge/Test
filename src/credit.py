@@ -1,15 +1,13 @@
-"""
-Credit assignment endpoints for Flight-Pass.
-Handles assigning credits to users and audit logging.
-"""
-from fastapi import APIRouter, Depends
-from services.credit_service import CreditService
-from core.rbac import require_roles, Role
+"""Credit entity and schema."""
+from pydantic import BaseModel
+from typing import Optional
 
-router = APIRouter(prefix="/credit", tags=["credit"])
-
-@router.post("/assign")
-async def assign_credits(assignment_data: dict, user_role: Role = Depends()):
-    """Assign credits to a user."""
-    # TODO: Validate input, call CreditService, audit assignment
-    raise NotImplementedError
+class Credit(BaseModel):
+    credit_id: str
+    bundle_id: str
+    status: str  # active, redeemed, expired
+    route: str
+    zone: str
+    fare_family: str
+    traveler_id: Optional[str]
+    # TODO: Add more fields as per TSD
