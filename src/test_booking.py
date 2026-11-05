@@ -1,6 +1,4 @@
-"""
-Test stubs for Booking model.
-"""
-def test_booking_model():
-    # TODO: Test Booking model
+"""Test Booking model."""
+def test_booking_schema():
+    # TODO: Test Booking schema
     pass
