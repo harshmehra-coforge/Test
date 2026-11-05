@@ -1,12 +1,11 @@
-"""
-Audit log models for Flight-Pass.
-"""
+"""AuditLog entity and schema."""
 from pydantic import BaseModel
+from typing import Optional
 
 class AuditLog(BaseModel):
-    id: str
+    event_id: str
     user_id: str
     action: str
     timestamp: str
-    details: dict
-    # TODO: Add more fields as needed
+    entity_affected: str
+    # TODO: Add more fields as per TSD
