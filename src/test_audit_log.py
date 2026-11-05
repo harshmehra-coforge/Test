@@ -1,6 +1,4 @@
-"""
-Test stubs for AuditLog model.
-"""
-def test_audit_log_model():
-    # TODO: Test AuditLog model
+"""Test AuditLog model."""
+def test_audit_log_schema():
+    # TODO: Test AuditLog schema
     pass
