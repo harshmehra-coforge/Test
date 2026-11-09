@@ -1,24 +1,16 @@
-"""Typed calculator contracts."""
-from enum import StrEnum
-from pydantic import BaseModel, ConfigDict
+"""Model management endpoints."""
+from fastapi import APIRouter
 
-class Operation(StrEnum):
-    """Supported arithmetic operations."""
-    ADD = "add"
-    SUBTRACT = "subtract"
-    MULTIPLY = "multiply"
-    DIVIDE = "divide"
+router = APIRouter(prefix="/models", tags=["models"])
 
-class CalculationRequest(BaseModel):
-    """Input operands and operation."""
-    model_config = ConfigDict(extra="forbid")
-    left: float
-    right: float
-    operation: Operation
+@router.post("/")
+async def upload_model():
+    """Upload or register a new model."""
+    # TODO: Handle model upload/registration
+    raise NotImplementedError
 
-class CalculationResponse(BaseModel):
-    """Calculation result."""
-    left: float
-    right: float
-    operation: Operation
-    result: float
+@router.get("/{model_id}")
+async def get_model(model_id: str):
+    """Get model details."""
+    # TODO: Fetch model info from DB
+    raise NotImplementedError
