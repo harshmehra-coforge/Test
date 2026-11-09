@@ -1,7 +1,13 @@
-# Dockerfile for Flight-Pass Service
+# Dockerfile for LoRA/QLoRA Fine-Tuning Platform
 FROM python:3.11-slim
+
 WORKDIR /app
+
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
+
+COPY src/ ./src/
+COPY .env.example ./
+
+EXPOSE 8000
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
