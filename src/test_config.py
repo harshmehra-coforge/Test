@@ -1,4 +1,4 @@
-"""Test config module."""
-def test_settings_load():
-    # TODO: Test environment variable loading
+"""Test config loader."""
+def test_get_settings():
+    # TODO: Test config loading
     pass
