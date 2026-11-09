@@ -1,15 +1,11 @@
-"""
-Audit endpoints for Flight-Pass.
-Handles audit log access and compliance queries.
-"""
-from fastapi import APIRouter, Depends
-from services.audit_service import AuditService
-from core.rbac import require_roles, Role
+"""Audit log schema/model."""
+from pydantic import BaseModel
+from typing import Optional
 
-router = APIRouter(prefix="/audit", tags=["audit"])
-
-@router.get("/logs")
-async def get_audit_logs(user_role: Role = Depends()):
-    """Retrieve audit logs."""
-    # TODO: Call AuditService, return logs
-    raise NotImplementedError
+class AuditLog(BaseModel):
+    action_id: str
+    user_id: str
+    action_type: str
+    resource: str
+    detail: Optional[str]
+    timestamp: str
