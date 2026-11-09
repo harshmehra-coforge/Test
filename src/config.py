@@ -1,23 +1,27 @@
-"""App configuration and environment variable management."""
+"""Configuration loader using environment variables."""
 from pydantic import BaseSettings
-from typing import Optional
+import os
 
 class Settings(BaseSettings):
-    """App settings loaded from environment variables."""
-    ENV: str = "development"
-    COSMOS_DB_URI: str
-    COSMOS_DB_KEY: str
-    POSTGRES_URI: str
-    REDIS_URI: str
-    SABRE_PSS_API_URL: str
-    EMD_S_API_URL: str
-    WESTJET_DIGITAL_API_URL: str
-    WESTJET_LOYALTY_API_URL: str
-    AZURE_AD_TENANT_ID: str
-    AZURE_AD_CLIENT_ID: str
-    AZURE_AD_CLIENT_SECRET: str
-    KEY_VAULT_URI: str
-    class Config:
-        env_file = ".env"
+    azure_client_id: str = os.getenv("AZURE_CLIENT_ID", "")
+    azure_tenant_id: str = os.getenv("AZURE_TENANT_ID", "")
+    azure_client_secret: str = os.getenv("AZURE_CLIENT_SECRET", "")
+    azure_subscription_id: str = os.getenv("AZURE_SUBSCRIPTION_ID", "")
+    azure_resource_group: str = os.getenv("AZURE_RESOURCE_GROUP", "")
+    azure_container_registry: str = os.getenv("AZURE_CONTAINER_REGISTRY", "")
+    azure_cosmos_uri: str = os.getenv("AZURE_COSMOS_URI", "")
+    azure_cosmos_key: str = os.getenv("AZURE_COSMOS_KEY", "")
+    azure_blob_conn_string: str = os.getenv("AZURE_BLOB_CONN_STRING", "")
+    azure_service_bus_conn_str: str = os.getenv("AZURE_SERVICE_BUS_CONN_STR", "")
+    azure_key_vault_uri: str = os.getenv("AZURE_KEY_VAULT_URI", "")
+    postgres_host: str = os.getenv("POSTGRES_HOST", "localhost")
+    postgres_port: int = int(os.getenv("POSTGRES_PORT", 5432))
+    postgres_db: str = os.getenv("POSTGRES_DB", "")
+    postgres_user: str = os.getenv("POSTGRES_USER", "")
+    postgres_password: str = os.getenv("POSTGRES_PASSWORD", "")
+    secret_key: str = os.getenv("SECRET_KEY", "")
 
-settings = Settings()
+
+def get_settings() -> Settings:
+    """Return app settings."""
+    return Settings()
