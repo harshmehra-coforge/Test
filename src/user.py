@@ -1,10 +1,23 @@
-"""User entity and schema."""
+"""User, role, session, and permissions models."""
 from pydantic import BaseModel
-from typing import List
+from typing import Optional, List
 
-class User(BaseModel):
+class UserProfile(BaseModel):
     user_id: str
+    name: str
+    email: str
     roles: List[str]
-    organization: str
-    allocations: List[str]
-    # TODO: Add more fields as per TSD
+
+class Role(BaseModel):
+    role_id: str
+    name: str
+    permissions: List[str]
+
+class Session(BaseModel):
+    session_id: str
+    user_id: str
+    expires_at: str
+
+class Permission(BaseModel):
+    permission_id: str
+    name: str
