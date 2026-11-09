@@ -1,6 +1,4 @@
-"""
-Test stubs for audit endpoints.
-"""
-def test_get_audit_logs():
-    # TODO: Test get_audit_logs endpoint
+"""Test AuditLog model."""
+def test_auditlog_model():
+    # TODO: Test AuditLog schema/model
     pass
