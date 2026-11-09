@@ -1,19 +1,18 @@
-"""FastAPI app factory and startup wiring for Flight-Pass microservices."""
+"""FastAPI app factory and startup wiring."""
 from fastapi import FastAPI
-from src.api.routes import bundles, credits, users, booking, admin, reporting
+from src.core.config import get_settings
+from src.api.routes import dashboard, jobs, models, deploy
 
+app = FastAPI(title="LoRA/QLoRA Fine-Tuning Platform")
 
-def create_app() -> FastAPI:
-    """Create and configure FastAPI app."""
-    app = FastAPI(title="Flight-Pass Service")
-    # Register routers
-    app.include_router(bundles.router)
-    app.include_router(credits.router)
-    app.include_router(users.router)
-    app.include_router(booking.router)
-    app.include_router(admin.router)
-    app.include_router(reporting.router)
-    # TODO: Add startup/shutdown event handlers, middleware, DI wiring
-    return app
+# Register routers
+app.include_router(dashboard.router)
+app.include_router(jobs.router)
+app.include_router(models.router)
+app.include_router(deploy.router)
 
-app = create_app()
+@app.on_event("startup")
+def startup_event():
+    """Startup logic: load config, connect to Azure, etc."""
+    # TODO: Initialize connections, logging, etc.
+    pass
