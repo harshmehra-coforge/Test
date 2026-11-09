@@ -1,4 +1,2 @@
-"""
-Cosmos DB access layer
-"""
-# TODO: Implement Cosmos DB client and CRUD operations for models
+"""Cosmos DB data access layer."""
+# TODO: Implement Cosmos DB access for jobs, models, audit logs
