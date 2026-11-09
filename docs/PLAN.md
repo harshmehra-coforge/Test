@@ -1,102 +1,96 @@
-# Implementation Plan: Simple Calculator Application
+# PLAN.md
 
-## 1. Stack & Rationale
+## Stack & Rationale
 
-- **Frontend Framework:** React (per TSD; modular, accessible, and widely supported for SPA)
-- **Backend:** None (all logic in frontend; no server or API required)
-- **Language:** JavaScript (ES6+) with JSX
-- **Styling:** CSS3 (with optional CSS Modules or styled-components)
-- **Testing:** Jest + React Testing Library (unit/UI), axe-core (accessibility)
-- **CI/CD:** GitHub Actions (for build, test, deploy)
-- **Hosting:** Azure Static Web Apps (or Netlify/Vercel)
-- **Accessibility:** WAI-ARIA, WCAG 2.1 AA compliance
+- **Language**: Python 3.11
+- **Frameworks/Libraries**:
+  - PyTorch (for model fine-tuning)
+  - HuggingFace Transformers & PEFT (for LoRA/QLoRA)
+  - FastAPI (for optional REST API)
+  - Docker (containerization)
+- **Deployment**: Azure Foundry compute (container-based deployment)
+- **Config**: 12-factor, via environment variables
+- **Testing**: pytest
 
-*Rationale:* The TSD specifies a frontend-only SPA for basic arithmetic, with React as the default. No backend is needed, minimizing complexity and cost. Accessibility and cross-platform support are first-class requirements.
+**Rationale**: Python is the de facto standard for ML/AI and model fine-tuning. LoRA/QLoRA are best supported in HuggingFace/PEFT. Docker ensures reproducibility and Azure Foundry supports containerized workloads.
 
-## 2. Module/Component Breakdown
+## Module/Service Breakdown
 
-| Module/Component         | Purpose                                                      |
-|-------------------------|--------------------------------------------------------------|
-| `src/components/Calculator.jsx` | Main calculator UI and state management                    |
-| `src/components/Button.jsx`     | Reusable button component (digits, operations, clear)      |
-| `src/components/Display.jsx`    | Shows current input/result                                 |
-| `src/utils/calculate.js`        | Pure functions for arithmetic and input validation         |
-| `src/utils/validation.js`       | Input validation helpers                                   |
-| `src/App.jsx`                   | App root, layout, accessibility wiring                     |
-| `src/index.js`                  | Entrypoint, ReactDOM render                               |
-| `src/styles/`                   | CSS stylesheets                                           |
-| `public/`                       | Static assets, index.html                                 |
-| `tests/`                        | Unit and UI tests, accessibility tests                    |
-| `.github/workflows/`            | CI/CD pipeline config                                     |
-| `Dockerfile`                    | (Optional) Containerization for local/dev use             |
-| `.env.example`                  | Example environment config (if needed)                    |
-| `README.md`                     | Project overview, setup, run instructions                 |
+- **src/**
+  - `main.py`: Entrypoint CLI/REST API
+  - `trainer/`
+    - `data.py`: Data loading/prep utilities
+    - `lora.py`: LoRA fine-tuning logic
+    - `qlora.py`: QLoRA fine-tuning logic
+    - `utils.py`: Shared utilities
+    - `config.py`: Training/config management
+  - `api/`
+    - `routes.py`: (Optional) REST endpoints for triggering jobs
+  - `docker/`
+    - `build.py`: Docker image build script (if needed)
+  - `deployment/`
+    - `azure_foundry.py`: Azure deployment logic/stubs
+- **tests/**: Mirrors src/ structure
+- **.env.example**: Example environment variables
+- **requirements.txt**: Python dependencies
+- **Dockerfile**: Container build
+- **README.md**: Setup, usage, deployment docs
 
-## 3. Target Folder Structure
+## Target Folder Structure
 
 ```
-/
-├── public/                  # Static assets, index.html
-├── src/
-│   ├── components/          # React components
-│   │   ├── Calculator.jsx   # Main calculator UI
-│   │   ├── Button.jsx       # Reusable button
-│   │   └── Display.jsx      # Input/result display
-│   ├── utils/               # Pure logic helpers
-│   │   ├── calculate.js     # Arithmetic logic
-│   │   └── validation.js    # Input validation
-│   ├── App.jsx              # App root
-│   └── index.js             # Entrypoint
-├── src/styles/              # CSS styles
-├── tests/                   # Unit/UI/accessibility tests
-│   ├── Calculator.test.jsx
-│   ├── Button.test.jsx
-│   ├── Display.test.jsx
-│   └── calculate.test.js
-├── .github/workflows/       # CI/CD config
-│   └── ci.yml
-├── Dockerfile               # (Optional) Containerization
-├── .env.example             # Example env vars (if any)
-├── package.json             # NPM dependencies/scripts
-├── README.md                # Project overview
+project-root/
+  src/
+    main.py                  # Entrypoint CLI/REST API
+    trainer/
+      data.py                # Data loading/prep
+      lora.py                # LoRA fine-tuning logic
+      qlora.py               # QLoRA fine-tuning logic
+      utils.py               # Shared utilities
+      config.py              # Training/config management
+    api/
+      routes.py              # REST endpoints (optional)
+    docker/
+      build.py               # Docker image build script (optional)
+    deployment/
+      azure_foundry.py       # Azure deployment logic/stubs
+  tests/
+    test_main.py
+    trainer/
+      test_data.py
+      test_lora.py
+      test_qlora.py
+      test_utils.py
+      test_config.py
+    api/
+      test_routes.py
+    docker/
+      test_build.py
+    deployment/
+      test_azure_foundry.py
+  requirements.txt
+  Dockerfile
+  .env.example
+  README.md
 ```
 
-## 4. Build Order / Milestones
+## Build Order & Milestones
 
-1. **Project Setup**
-   - Initialize React app (Vite, CRA, or similar)
-   - Set up linting, formatting, and CI pipeline
-2. **Core Components**
-   - Implement `Button`, `Display`, and `Calculator` components
-   - Wire up state and event handling
-3. **Logic Layer**
-   - Implement arithmetic and input validation logic in `utils/`
-   - Integrate with UI components
-4. **Accessibility**
-   - Add ARIA roles, keyboard navigation, and screen reader support
-   - Test with axe-core and manual audits
-5. **Styling & Responsiveness**
-   - Apply CSS for desktop/mobile, ensure responsive layout
-6. **Testing**
-   - Write unit tests for logic and UI
-   - Add accessibility and cross-browser tests
-7. **Deployment**
-   - Configure CI/CD for static hosting
-   - Deploy to Azure Static Web Apps (or equivalent)
+1. **Project scaffolding**: Create folder structure, config, and entrypoints
+2. **Data preparation module**: Implement data loading/prep stubs
+3. **LoRA/QLoRA modules**: Implement fine-tuning logic stubs
+4. **CLI/REST API**: Entrypoint for triggering training jobs
+5. **Dockerization**: Write Dockerfile, build scripts
+6. **Azure Foundry deployment**: Write deployment stubs/scripts
+7. **Testing**: Add test stubs for all modules
 
-## 5. Key Risks & Open Questions
+**Key Risks / Open Questions**:
+- Azure Foundry specifics (container registry, deployment YAML, secrets)
+- Data privacy/handling for training data
+- Model artifact storage (local vs Azure Blob)
 
-- **Accessibility Gaps:** There is a risk that accessibility requirements (e.g., screen reader support, keyboard navigation, ARIA labeling) may not be fully met. This will be mitigated by integrating accessibility checks (axe-core, manual audits) early in development, following React and WAI-ARIA best practices, and conducting regular accessibility reviews throughout the project.
-- **Cross-browser and Cross-device Compatibility:** The calculator must function consistently across all modern browsers and devices (desktop and mobile). Risks include layout or event handling inconsistencies. These will be addressed by implementing responsive design from the start and performing thorough cross-browser/device testing as part of the CI pipeline and manual QA.
-- **Client-side Logic Only (No Backend):** All computation and validation occur in the browser, so any bugs or security issues directly affect the user experience. To mitigate this, all logic will be implemented as pure, well-tested functions, and input will be strictly validated and sanitized. No sensitive data is handled, reducing risk.
-- **Framework Substitution:** If a different frontend framework is chosen (e.g., Vue, Svelte), there is a risk of missing some NFRs (e.g., accessibility, performance). Any alternative must be evaluated to ensure it meets all specified non-functional requirements, and the plan must be updated accordingly.
-- **Open Questions:**
-    - Are there any additional accessibility or compliance requirements beyond WCAG 2.1 AA?
-    - Should the calculator support additional input methods (e.g., voice input) in the future?
+## Component/Dependency Diagram
 
-## 6. Component/Dependency Diagram
+![Diagram](https://dummyimage.com/600x300/cccccc/000000&text=Component+Diagram+Unavailable)
 
-![Component Diagram](https://mermaid.ink/img/pako:eNq1kMuOgjAQRX-l81yCNo9EtoXoPzAq6MDgQOoQgoUynUPyMe0fBzlmJb2jL_8EkLaaG2J5zvhrHMpFHUDKZguEd9LTK8XXTISbkaZkvfJ2BQwt0ByTk8iqotVTM4pW9sZo5JBpQ8BpPyB6qTP0De8steWHPcxuqmrUgI8Bvdr3G0epf6BZzaXt9XYiLcdTwDCvyqRvj66j3dUljQ9QAKiVvbkfKAAyCJBgjDGBYWaMvQVWeiplOZqUjaPwK4w9TtjpWflQrq3N8P0KP9GYv18A-N-0Ig==)
-
----
-*This plan is derived from the TSD and upstream requirements. All structure, naming, and stack choices are consistent with the TSD and business/user requirements.*
+*(Mermaid diagram rendering failed; see code in source for intended structure.)*
