@@ -1,4 +1,4 @@
-"""Test security module."""
-def test_rbac_enforcement():
-    # TODO: Test RBAC enforcement
+"""Test security logic."""
+def test_security():
+    # TODO: Test security logic
     pass
