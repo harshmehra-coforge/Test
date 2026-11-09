@@ -1,4 +1,4 @@
-"""Test User model."""
-def test_user_schema():
-    # TODO: Test User schema
+"""Test User/Role/Session/Permission models."""
+def test_user_models():
+    # TODO: Test user/role/session/permission models
     pass
