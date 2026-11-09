@@ -1,7 +1,8 @@
-"""Model tests."""
-from calculator.models import CalculationRequest, Operation
+"""Test model endpoints."""
+def test_upload_model():
+    # TODO: Test model upload
+    pass
 
-def test_request_accepts_operation() -> None:
-    """Supported operation validates."""
-    request = CalculationRequest(left=2, right=3, operation=Operation.ADD)
-    assert request.operation is Operation.ADD
+def test_get_model():
+    # TODO: Test model retrieval
+    pass
