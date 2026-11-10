@@ -1,19 +1,23 @@
 """
-FastAPI app factory and API gateway wiring for Flight-Pass module.
+Entrypoint for the Payment Gateway Integration Service.
+Initializes FastAPI app, registers routers, and configures startup/shutdown events.
 """
 from fastapi import FastAPI
-from core.config import get_settings
-from api.routes import flightpass, booking, ledger, user, admin
+from src.core.config import get_settings
+from src.api.routes import payments, status, config
 
 
 def create_app() -> FastAPI:
-    """App factory for the Flight-Pass API gateway."""
-    app = FastAPI(title="BizWeb Flight-Pass API")
-    app.include_router(flightpass.router)
-    app.include_router(booking.router)
-    app.include_router(ledger.router)
-    app.include_router(user.router)
-    app.include_router(admin.router)
+    """App factory for FastAPI."""
+    app = FastAPI(title="Payment Gateway Integration Service")
+
+    # Register routers
+    app.include_router(payments.router)
+    app.include_router(status.router)
+    app.include_router(config.router)
+
+    # TODO: Add startup/shutdown event handlers (DB, telemetry, etc)
     return app
+
 
 app = create_app()
