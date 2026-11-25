@@ -1,230 +1,128 @@
-# Technical Specification Document
-## Large Deal Approval Enhancement — Parallel Finance and Deal Desk Approval
-**Date:** 2026-10-30
-**Version:** 1.0
-**Status:** Draft
+# Technical System Design (TSD)
 
-## 1. Executive Summary
+## 1. Introduction
+This Technical System Design (TSD) defines the technical architecture and implementation approach for a multi-agent collaborative workspace designed to support robust artifact management, traceability, and access control as specified in the upstream Business Requirements Document (BRD).
 
-### 1.1 Purpose
-This design introduces a parallel, multi-tier approval workflow for high-value Salesforce Opportunities, ensuring robust Finance oversight for deals above $500K Total Contract Value (TCV). It addresses prior audit gaps and supports efficient approvals for sales operations, eliminating risk of unreviewed non-standard revenue recognition terms.
+**Business Requirement Source:** [BA-dynamic-agent/BRD.md]
 
-### 1.2 Scope
-**In Scope:**
-- Salesforce Opportunity approval flow with parallel Deal Desk and Finance tracks
-- Finance track with Director ($500K–$2M) and CFO (> $2M) sub-tiers
-- TCV and discount-based approval triggers
-- MS Teams channel integration for notification
-- Finance and Sales dashboards for approval reporting
+## 2. System Goals and Scope
+The system will deliver a collaborative workspace that enables:  
+- Clear artifact generation, referencing, and storage across distinct agent folders  
+- Robust artifact traceability  
+- Consistent versioning and auditability  
+- Controlled access for read/write operations
 
-**Out of Scope:**
-- Renewal auto-approval logic (to be proposed separately)
-- External ERP integration
-- Payment reconciliation or invoicing automation
+**In Scope:** Workspace file/folder architecture, artifact tracking mechanisms, access controls, and APIs for artifact operations.  
+**Out of Scope:** Implementation of domain features outside artifact management; UI/UX design; execution logic of non-artifact agents.
 
-### 1.3 Key Decisions
-1. **Parallel Approval Tracks:** Finance and Deal Desk approvals run concurrently, reducing cycle time by up to 48 hours.
-2. **TCV Threshold ($500K):** Chosen based on volume and audit trade-offs; sub-tier split between Director and CFO for larger deals.
-3. **Event-driven Integration:** Salesforce flows/events trigger notifications to MS Teams and dashboards, enabling real-time Finance visibility.
+## 3. Architecture Overview
+The system employs:
+- A cloud-hosted logical workspace (Azure Files/Blob Storage)
+- Microservices for artifact management (API-based)
+- Event-driven triggers for workflow steps (Azure Event Grid)
+- Centralized metadata tracking (Cosmos DB)
 
-## 2. System Architecture
-### 2.1 High-Level Architecture
+### Logical Architecture Diagram
 
-**Approval triggers:**
-- Deal Desk approval: Discount > 10% on Opportunity
-- Finance approval: TCV > $500K; sub-tier routing by TCV band
+```mermaid
+flowchart TD
+    User([Users & Agents])
+    Portal([Workspace Portal/API])
+    FolderMgr[Folder Structure Mgmt Service]
+    ArtifactMgr[Artifact Storage/Retrieval API]
+    MetaDB[(Metadata Store: Cosmos DB)]
+    Storage[(Azure Blob Storage)]
+    EventHub((Azure Event Grid))
+    Auth([Azure AD/OAuth Access Control])
 
-**Notification & Reporting:**
-- Email notifications to approvers
-- Channel post (MS Teams) for Finance team awareness
-- Salesforce dashboards for approval status, SLA, and rejection reasons
+    User -->|"API/UI"| Portal
+    Portal --> FolderMgr
+    Portal --> ArtifactMgr
+    FolderMgr --> Storage
+    ArtifactMgr --> Storage
+    ArtifactMgr --> MetaDB
+    ArtifactMgr --> EventHub
+    Auth -.-> Portal
+    Auth -.-> ArtifactMgr
+    Auth -.-> FolderMgr
 
-**Component Breakdown:**
-- Presentation: Salesforce UI (Opportunities, Approval History, Dashboards)
-- Application: Approval Process, Flow Builder, Workflow automation
-- Integration: MS Teams HTTP callout (webhook), Email, Custom dashboard
+    EventHub -- triggers --> Portal
+    Portal -- updates --> MetaDB
+```
 
-*(Architecture diagram will be included upon successful rendering; see component breakdown above)*
+## 4. Functional Components
+### 4.1 Folder Structure Management
+- Establishes per-agent subfolders using naming convention `<agent>/<artifact_name>.<ext>`
+- Supports creation/update/delete operations tied to agent identity and workflow step
+- Ensures all agents have read-access to relevant folders, write-access only to their own
 
-## 3. System Flows
-### 3.1 Primary Approval Flow
-- Opportunity created/updated with TCV and discount.
-- If discount >10%, Deal Desk approval triggered.
-- If TCV >$500K, Finance approval triggered (Director: $500K–$2M; CFO: >$2M).
-- Both tracks run in parallel.
-- Both must approve for deal to proceed; rejection from either returns combined comments to rep.
-- Re-submission restarts both tracks; approvals do not carry over.
+### 4.2 Artifact Storage & Retrieval API
+- CRUD endpoints for artifacts in Azure Blob Storage
+- Versioning enforced on updates (immutable snapshots)
+- Metadata enforced: agent, step, timestamp, BR reference
+- Checks naming conventions and duplicate prevention
 
-### 3.2 Notifications
-- Email sent to relevant approver(s) upon trigger.
-- MS Teams channel post upon Finance track trigger/rejection/approval.
+### 4.3 Metadata & Traceability
+- Centralized Cosmos DB for artifact metadata
+- Indexes by agent, workflow step, BR reference, timestamps
+- All artifact operations create audit entries
 
-### 3.3 Reporting
-- Monthly dashboards for Finance: approval queue metrics, time by sub-tier, rejection reasons.
-- Same metrics available to Sales Ops dashboard.
+### 4.4 Access Control
+- Azure AD-based authentication for all API/services
+- RBAC to restrict write operations to owning agent
+- Read access for all agents to all artifacts
 
-### 3.4 Error & Retry Handling
-- On rejection, Opportunity is updated with comments, resubmission restarts both tracks.
-- Audit log maintained for all approvals, rejections, and comments.
+## 5. Non-Functional Requirements (NFRs)
+- **Versioning:** All artifacts versioned (immutable blobs, version pointer in metadata DB)
+- **Access Control:** All endpoints require Azure AD (OAuth2) authentication; RBAC enforced; no cross-agent writes
+- **Naming Conventions:** `<agent>/<artifact_name>.<ext>`
+- **Audit & Logging:** All artifact writes/reads logged; audit retained for 2 years
+- **Availability:** Storage/API SLA ≥ 99.9%
+- **Latency:** API p99 < 200ms for metadata ops, <800ms for artifact upload/download (≤10MB)
+- **Scalability:** 100 concurrent agents, 100,000 artifacts, 1TB total storage in initial launch
+- **Cost:** ≤ $2,000/month for storage/compute (Azure S1 tier)
 
-## 4. Data Architecture
-### 4.1 Entity & Data Model
-| Entity              | Fields                      |
-|---------------------|-----------------------------|
-| Opportunity         | Id, TCV, Discount, Stage, ApprovalStatus |
-| ApprovalRequest     | OpportunityId, Approver (Deal Desk/Finance), SubTier, Status, Comments, Timestamp |
-| NotificationEvent   | ApprovalRequestId, Type (Email, Teams), Status, Timestamp |
-| ApprovalHistory     | OpportunityId, ApprovalStage, Comments, DateTime |
+## 6. Key Technology & Infrastructure Decisions
+### Storage
+- **Choice:** Azure Blob Storage (hot tier for primary, archive for historical)
+- **Rationale:** Durable, scalable, native Azure integration, event trigger support
 
-### 4.2 Storage & Backup
-| Data Type                | Storage           | Retention | Backup Strategy          |
-|--------------------------|-------------------|-----------|--------------------------|
-| Opportunity              | Salesforce DB     | 7 years   | Daily backup, 30-day retention |
-| Approval History         | Salesforce DB     | 7 years   | Daily backup, 30-day retention |
-| Notification Events      | Azure Blob Storage| 1 year    | Weekly archiving             |
-| Dashboard Aggregates     | Salesforce DB     | 2 years   | Weekly backups               |
+### Metadata/Database
+- **Choice:** Azure Cosmos DB
+- **Rationale:** Low-latency, scalable, NoSQL schema for flexible workflow metadata
 
-## 5. Technology Stack
-| Component          | Technology               | Purpose                       | Rationale & Alternatives                 |
-|--------------------|-------------------------|-------------------------------|------------------------------------------|
-| Approval Workflow  | Salesforce Flow Builder  | Flexible multi-criteria routing| Native, visual, extensible; Apex possible|
-| Integration        | Salesforce HTTP Callout  | MS Teams webhook notification  | Real-time, scalable; Zapier possible     |
-| Database           | Salesforce DB            | Primary record/storage         | Native, secure, audit compliant          |
-| Reporting          | Salesforce Reports/Dashbd| SLA monitoring, queue analysis | Native, customizable; Power BI alt.      |
-| Notification Arch  | Azure Blob Storage       | Notification event archive     | Durable, cost-effective                  |
-| Monitoring         | Azure Monitor            | Notification delivery, errors  | Unified, cross-cloud                     |
-| IaC                | Terraform                | Azure storage provisioning     | Standard, repeatable                     |
+### Access/API
+- **APIs:** FastAPI (Python, async), OpenAPI 3.0+, full RBAC integration
+- **Alternatives Considered:** REST-only (chosen for speed/clarity vs GraphQL complexity)
+- **Authentication:** Azure AD, managed identities possible for automation
 
-## 6. Integration Architecture
+### Event/Workflow Integration
+- **Events:** Azure Event Grid triggers on artifact writes/updates
+- **Alternatives Considered:** Kafka (overkill for scale, Azure-native preferred)
 
-### 6.1 Integration Patterns & Events
-- Salesforce Platform Events/fire approval updates
-- HTTP Callout via Flow Builder triggers MS Teams channel post with deal, approval status, reason
-- Email notification via Salesforce standard email template system
-- Event log archived to Azure Blob Storage for compliance and audit
+## 7. Compliance & Traceability
+- All artifacts reference BRD by file and version
+- Metadata indexed for full audit chain: agent, BR, step, timestamp
+- Periodic audit jobs check for compliance
 
-### 6.2 API Endpoints
-| Endpoint                   | Method | Description                        | Auth      | Rate Limit   |
-|----------------------------|--------|------------------------------------|-----------|--------------|
-| /opportunity/{id}/approve  | POST   | Trigger approval (Deal Desk/Finance)| Salesforce | 100/min      |
-| /notification/send         | POST   | Send notification to Teams/email    | OAuth2    | 1000/min     |
-| /dashboard/finance         | GET    | Approvals dashboard metrics         | Salesforce | 100/min      |
-| /approval/history/{id}     | GET    | Retrieve approval history           | Salesforce | 100/min      |
+## 8. Extensibility & Operations
+- **Extensibility:** Pluggable metadata, support for future domain-specific artifact types
+- **Backup/DR:** GRS (Geo-redundant) backup for Storage; Cosmos DB backup policy enabled
+- **Monitoring:** Azure Monitor, Prometheus for FastAPI endpoints, OpenTelemetry traces
+- **Automation:** CI/CD for all services via GitHub Actions, ARM/Bicep templates for IaC
 
-### 6.3 Events
-| Event Name | Producer      | Consumers    | Schema                                         |
-|------------|-------------- |------------- |------------------------------------------------|
-| ApprovalTriggered | Salesforce Flow | Deal Desk/Finance | {OpportunityId, TriggerType, Approver, Timestamp} |
-| ApprovalCompleted | Deal Desk/Finance | Notification Service | {OpportunityId, Status, Approver, Decision, Comments, Timestamp} |
-| NotificationSent | Notification Service | Archive/Audit      | {ApprovalRequestId, Type, Status, Timestamp}       |
+## 9. Alignment with BRD
+- Artifact location, referencing, traceability, and access control strictly map to BR-01 through BR-12
+- All system metadata and audit enforce traceability chain to business requirements
+- System architecture enforces folder and artifact conventions, read/write controls, and versioned auditing as specified
 
-## 7. Deployment Architecture
-
-**Infrastructure:**
-- Salesforce app and workflow configuration
-- Azure Blob Storage (for notification archive)
-- Azure Monitor (for alerting and monitoring)
-- MS Teams connector (Teams channel webhook)
-
-**Scaling Strategy:**
-- Workflow and notification integration scale automatically with Salesforce limits; Azure Blob Storage scales elastically; MS Teams channel posts rely on webhook throughput (SLA: <1s/call)
-
-**IaC & CI/CD:**
-- Terraform for Azure resource provisioning
-- Versioned pipeline for Salesforce workflow metadata
-- GitHub Actions for CI of integration glue code
-
-## 8. Security Architecture
-
-| Layer       | Control                      | Implementation                                      |
-|------------ |----------------------------- |-----------------------------------------------------|
-| Network     | Private endpoints            | Azure Blob Storage accessed via private endpoint     |
-| Application | Approval auth                | Salesforce internal user permissions, RBAC           |
-| Application | Teams webhook token          | Rotating secrets, managed in Azure Key Vault         |
-| Data        | Encryption at rest           | Salesforce native, Azure Storage CMK                 |
-| Data        | Encryption in transit        | TLS 1.3 everywhere                                  |
-| Audit       | Approval log                 | Immutable audit history in Salesforce                |
-
-## 9. Performance & Capacity
-
-| Metric                  | Target                 | Measurement                  |
-|------------------------ |----------------------- |---------------------------- |
-| Approval Latency (p95)  | <48 hours              | Salesforce/Integration logs  |
-| Notification Latency    | <5s                    | Azure Monitor                |
-| Monthly Throughput      | 40 deals/month (TCV >$500K) | Salesforce approval stats |
-| Notification Scalability| 1000 notifications/mo  | Azure Monitor                |
-| Approval SLA            | 99.95%                 | Uptime monitors              |
-| Audit log retention     | 7 years                | Salesforce/Blob Storage      |
-
-**Capacity Planning:**
-- Initial: 12–15 high-value deals per month, 40 notifications/month
-- Storage: <10GB/year in Azure Blob Storage
-- Notification SLA: <5s end-to-end
-
-**Cost Model:**
-| Resource                | SKU/Tier          | Monthly Cost (USD) |
-|------------------------ |-------------------|------------------- |
-| Azure Blob Storage      | Standard Hot      | $30                |
-| Azure Monitor           | Standard          | $10                |
-| MS Teams Webhook        | Included (O365)   | $0                 |
-| Salesforce Platform     | Included          | $0                 |
-| Terraform Pipeline      | Included          | $0                 |
-| **Total**               |                   | **$40/month**      |
-
-## 10. Monitoring & Observability
-
-- Logging: All approval actions and notification calls recorded in Salesforce and Azure
-- Metrics: Approval times (per tier), rejection rates, notification delivery rates
-- Distributed tracing: Approval-to-notification journey tracked via logs
-- Alerts: High rejection rates, notification failures
-- SLAs: Approval workflow uptime 99.95%, notification delivery <5s
-
-## 11. Disaster Recovery
-
-| Scenario               | RTO      | RPO        | Recovery Procedure                                 |
-|----------------------- |----------|------------|---------------------------------------------------|
-| Approval process error | <1 hour  | 0          | Manual remediation in Salesforce; retry submission |
-| Notification failure   | <5 min   | 0          | Retry from log, alert team                         |
-| Data corruption        | <24 hrs  | <24 hrs    | Restore Salesforce/Blob from backup                 |
-| Integration outage     | <30 min  | 0          | Manual fallback (email), restore from IaC           |
-
-- Backups: Daily Salesforce & Azure Blob, 30-day retention
-- IaC/template restore for Azure resource recovery
-
-## 12. Implementation Roadmap
-
-| Phase                        | Duration  | Deliverables                                  | Dependencies          |
-|------------------------------|-----------|-----------------------------------------------|-----------------------|
-| 1. Salesforce Flow/Approval  | 1 week    | Parallel approval flow implemented, roles set  | None                  |
-| 2. Teams/Webhook Integration | 1 week    | Notification connected to Finance channel      | Phase 1               |
-| 3. Dashboard Reporting       | 1 week    | Finance/SalesOps approval dashboards live      | Phase 1               |
-| 4. Backup, Monitoring & DR   | 3 days    | Backup and observability configured            | Phases 1–3            |
-| 5. Testing & UAT             | 1 week    | Integration, SLA, permission tests             | All prior             |
-| 6. Go-live & Training        | 3 days    | System live, handover, user training           | All prior             |
-
-## 13. Appendices
+## 10. Appendix
+### References
+- BA-dynamic-agent/BRD.md, Azure official documentation (Blob Storage, Cosmos DB, Event Grid, FastAPI)
 
 ### Glossary
-- **TCV:** Total Contract Value (Salesforce Opportunity field)
+- **Artifact:** Any document or file produced in workflow
+- **Agent:** Discrete processing/producing entity in multi-agent flow
+- **Workspace:** The Azure-backed root storage containing all agent folders/artifacts
+- **RBAC:** Role-Based Access Control (enforced by Azure AD)
 - **BRD:** Business Requirements Document
-- **SLA:** Service-Level Agreement
-- **RTO:** Recovery Time Objective
-- **RPO:** Recovery Point Objective
-
-### References
-- Meeting_Note_02_High_Value_Deal.md
-- Salesforce Approval Workflow Best Practices (internal knowledge base)
-
-### Testing Strategy
-- UAT for all approval scenarios (parallel, sequential, rejection flow)
-- Integration tests with MS Teams webhook (failure, latency, content)
-- Dashboard report consistency tests
-- Security test: permission denial for unauthorized approval
-
-### Risks
-| Risk                                   | Impact   | Probability | Mitigation                                  |
-|---------------------------------------- |----------|-------------|----------------------------------------------|
-| Notification integration fails          | Medium   | Low         | Manual email fallback, scheduled retries     |
-| Finance team overload                   | Medium   | Medium      | Threshold re-evaluation every 6 months       |
-| Audit log data loss                     | High     | Low         | Daily/weekly backup, test restores           |
-| Approval delegation not configured      | High     | Low         | Regular permission reviews, test submissions |
