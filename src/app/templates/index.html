@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Auto Insurance MVP</title><link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"></head>
+<body><main><h1>Auto Insurance Quote & FNOL</h1><p id="message" role="status"></p>
+<section><h2>Quote and bind</h2><form id="quote-form"><label>Driver age <input id="age" type="number" min="0" required></label><label>Vehicle <select id="vehicle"><option>sedan</option><option>suv</option><option>truck</option><option>motorcycle</option></select></label><button>Get quote</button></form><pre id="quote-result"></pre>
+<form id="bind-form"><label>Effective date <input id="effective" type="date" required></label><label>Expiration date <input id="expiration" type="date" required></label><button>Bind policy</button></form><pre id="policy-result"></pre></section>
+<section><h2>FNOL</h2><form id="claim-form"><label>Policy ID <input id="policy-id" required></label><label>Loss date <input id="loss-date" type="date" required></label><label>Loss type <input id="loss-type" required></label><label>Description <textarea id="description" maxlength="2000" required></textarea></label><button>Submit claim</button></form><pre id="claim-result"></pre></section>
+<section><h2>Claim status</h2><form id="status-form"><label>Claim ID <input id="claim-id" required></label><button>Lookup</button></form><pre id="status-result"></pre></section></main><script src="{{ url_for('static', filename='app.js') }}"></script></body></html>
