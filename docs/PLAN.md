@@ -1,100 +1,89 @@
-# Implementation Plan: Strategic Account Opportunity Approval Enhancement
+# Auto Insurance Quote & FNOL Claim App — Build Plan
 
-## Scope
-Scaffold a Salesforce Sales Cloud metadata package for governed CRO approval of Strategic Account Opportunities. The package preserves the existing Deal Desk rule, snapshots routing inputs at submission, supports delegated approval and SLA escalation, and provides notification, audit, operations, and reporting extension points.
+## Scope and source of truth
+This scaffold implements the approved MVP in `Architect-dynamic-agent/TSD.md`: deterministic `rating-v1` quotes, policy binding, basic FNOL submission, and read-only claim lookup. The authoritative assumptions are minimum age 18, supported vehicle types `sedan`, `suv`, `truck`, `motorcycle`, USD, inclusive coverage dates, and statuses `ACTIVE`, `EXPIRED`, `CANCELLED`, and `FNOL_SUBMITTED`.
 
-## Chosen stack and rationale
-- **Platform:** Salesforce Sales Cloud metadata, Flow, Approval Processes, Custom Metadata Types, Reports/Dashboards, and Named Credentials, as mandated by the TSD.
-- **Code:** Apex 3-layer support (`api`/invocable entry points -> services -> repositories), used only where Flow/native approval configuration needs deterministic validation, idempotency, logging, or integration seams.
-- **Automation:** Record-triggered and scheduled Flow are the system orchestration layer; native Approval Processes remain authoritative for human decisions and standard approval history.
-- **Persistence:** Standard Account/Opportunity plus custom fields, `Strategic_Approval_Execution_Log__c`, and `Strategic_Approval_Config__mdt`. No external database is introduced.
-- **Notifications:** Salesforce Email Alerts and Slack integration/Named Credential; failures are non-blocking and represented by retry/logging seams.
+## Stack and rationale
+- **Python 3.12 + Flask 3.x:** matches the TSD's lightweight modular-monolith decision and serves both JSON REST endpoints and the self-contained browser UI.
+- **SQLAlchemy 2.x + SQLite:** provides typed repository boundaries, referential integrity, WAL configuration, and zero external runtime dependencies for local MVP use.
+- **Vanilla HTML/CSS/JavaScript:** keeps the UI self-contained and avoids a frontend build pipeline.
+- **pytest:** supports direct pure-function rating tests and isolated API/database validation tests.
+- **Gunicorn-ready WSGI entrypoint:** local Flask remains convenient, while deployment can later use a production WSGI server.
 
-## Component mapping
-| TSD component | Scaffolded artifact |
-|---|---|
-| Submission routing and snapshot | `StrategicApprovalSubmissionService`, `StrategicApprovalSubmissionInvocable`, Opportunity fields, submission Flow placeholder |
-| Existing Deal Desk preservation and handoff | Approval-process metadata placeholder and `DealDeskHandoffService` |
-| CRO approval/delegation | Approval-process metadata placeholder, configuration metadata, runbook |
-| 24/48/72-hour SLA | Scheduled Flow placeholder, `StrategicApprovalSlaService` |
-| Notifications | `NotificationService` interface and Email/Slack adapter seams |
-| Audit/operations | `Strategic_Approval_Execution_Log__c` metadata and `ExecutionLogRepository` |
-| Reporting | Report/dashboard metadata placeholders and README implementation checklist |
-| Security and deployment | Permission sets, custom metadata, package manifest, CI validation stub |
+## Module breakdown
+- `app/config.py`: environment-driven settings, database URL, request size, and secret configuration.
+- `app/extensions.py`: SQLAlchemy instance and application extension setup.
+- `app/models.py`: `Policy` and `Claim` persistence models plus status constants.
+- `app/rating.py`: pure `rating-v1` calculation and domain validation errors.
+- `app/repositories.py`: policy/claim persistence interfaces and SQLAlchemy implementations.
+- `app/services.py`: quote, policy-binding, FNOL, and claim-status use cases; authoritative validation lives here.
+- `app/api.py`: versioned JSON routes, error mapping, correlation IDs, and health endpoint.
+- `app/__init__.py`: Flask app factory, SQLite pragmas, schema initialization, and static/template wiring.
+- `app/templates` and `app/static`: browser forms for quote, bind, FNOL, and claim lookup.
+- `tests/`: mirrored test skeleton, fixtures, three rating examples, and two required claim validation checks.
 
-## Target folder structure
+## Target tree
 ```text
-force-app/main/default/
-├── classes/                         # Apex contracts, orchestration, persistence seams, and tests
-│   ├── StrategicApprovalModels.cls  # Typed request/result/config/snapshot DTOs
-│   ├── StrategicApprovalModels.cls-meta.xml
-│   ├── StrategicApprovalRepository.cls
-│   ├── StrategicApprovalRepository.cls-meta.xml
-│   ├── StrategicApprovalServices.cls
-│   ├── StrategicApprovalServices.cls-meta.xml
-│   ├── StrategicApprovalInvocable.cls
-│   ├── StrategicApprovalInvocable.cls-meta.xml
-│   ├── StrategicApprovalTests.cls
-│   └── StrategicApprovalTests.cls-meta.xml
-├── objects/Account/fields/           # Strategic account governance field
-├── objects/Opportunity/fields/       # TCV, snapshots, approval state, and SLA fields
-├── objects/Strategic_Approval_Execution_Log__c/ # Operational audit log object
-├── customMetadata/                   # Governed thresholds and feature toggle
-├── flows/                            # Submission, handoff, SLA, and notification Flow seams
-├── permissionsets/                   # Sales Ops and approval administrator access
-├── reports/Strategic_Approval/       # Monthly/quarterly report folder placeholder
-├── dashboards/                       # Leadership dashboard placeholder
-└── package.xml                        # Deployable metadata manifest
-config/
-└── project-scratch-def.json           # Salesforce DX scratch-org definition
-scripts/
-└── validate.sh                        # CI/deployment validation stub
-docs/
-└── RUNBOOK.md                         # Delegation, operations, rollout, and rollback
-force-app/test/                        # Apex test source is colocated in classes
-├── testData/                          # Reserved for reusable test data factories
-README.md                              # Setup and implementation instructions
-Dockerfile                             # Reproducible Salesforce CLI validation container
-.env.example                           # Non-secret local variables
-.gitignore                             # Salesforce project ignores
+auto-insurance-app/
+  app/
+    __init__.py                 # Flask app factory and database initialization
+    config.py                   # Environment-backed settings
+    extensions.py               # SQLAlchemy extension
+    models.py                   # Policy and Claim ORM models
+    rating.py                   # Pure rating-v1 domain service
+    repositories.py             # Repository contracts and SQLAlchemy implementations
+    services.py                  # Quote, policy, FNOL, and status use cases
+    api.py                      # /api/v1 routes and safe error responses
+    templates/
+      index.html                # Self-contained UI shell
+    static/
+      app.js                    # Browser API orchestration and safe rendering
+      styles.css                # Minimal accessible styling
+  tests/
+    conftest.py                 # Isolated SQLite app/client fixtures
+    test_rating.py              # Three required premium unit checks
+    test_validation.py          # Out-of-coverage and inactive-policy checks
+    test_api.py                 # Smoke/status endpoint skeleton
+  run.py                        # WSGI entrypoint
+  requirements.txt              # Runtime and test dependencies
+  pyproject.toml                # Tooling and pytest configuration
+  Dockerfile                    # Container image for WSGI execution
+  .env.example                  # Safe local configuration template
+  .gitignore                    # Local artifacts and secrets exclusions
+  README.md                     # Setup, run, test, and MVP limits
 ```
 
-![Component diagram](mermaid-rendering-unavailable)
-
-Mermaid source (retained because renderer was unavailable):
+## Dependency diagram
 ```mermaid
 graph TD
-    Rep[Sales Representative] --> Submit[Opportunity Submission Flow]
-    Submit --> Snapshot[Routing Snapshot and Idempotency]
-    Snapshot --> Route{Strategic and TCV > 100K?}
-    Route -->|No| Existing[Existing Approval Behavior]
-    Route -->|Yes, Discount > 10%| DealDesk[Existing Deal Desk Approval]
-    Route -->|Yes, Discount <= 10%| CRO[CRO Approval Process]
-    DealDesk -->|Approved| CRO
-    DealDesk -->|Rejected| Outcome[Outcome and Audit History]
-    CRO --> SLA[Scheduled SLA Flow]
-    SLA --> Notify[Email and Slack Notifications]
-    SLA --> Rhea[Rhea escalation below 500K]
-    SLA --> Meera[Retain Meera authority at or above 500K]
-    CRO --> Outcome
-    Rhea --> Outcome
-    Outcome --> Reports[Leadership dashboards]
-    Config[Custom Metadata Configuration] --> Submit
-    Config --> SLA
+    Browser[Browser UI] --> API[Flask REST API]
+    API --> Rating[Rating Service]
+    API --> Policy[Policy Service]
+    API --> Claim[Claim Service]
+    Policy --> Repo[SQLAlchemy Repositories]
+    Claim --> Repo
+    Repo --> DB[(SQLite)]
+    API --> Errors[Error and Correlation ID Handling]
 ```
 
-## Build order / milestones
-1. **Metadata foundation:** fields, log object, permission sets, custom metadata, package manifest.
-2. **Routing contract:** DTOs, repository seams, validation, strict boundary comparisons, submission-version idempotency.
-3. **Flow and approval wiring:** controlled submission Flow, Deal Desk after-action handoff, direct/conditional CRO approval, record locking and outcome paths.
-4. **SLA and notifications:** scheduled Flow, reminder/escalation rules, authority ceiling guard, Email Alerts, Slack Named Credential and retry logging.
-5. **Reporting and security:** snapshot-based reports/dashboards, field-level security, audit history, deployment mapping.
-6. **Verification and rollout:** Apex boundary tests, bulk/performance tests, UAT simulation, first-five production validation, feature-toggle rollback.
+## Build order
+1. **Foundation:** configuration, extension setup, app factory, database pragmas, and model schema.
+2. **Domain:** rating constants/validation and typed domain exceptions; keep rating side-effect free.
+3. **Persistence:** repository contracts and SQLAlchemy implementations with transaction boundaries.
+4. **Use cases:** quote, policy bind with server-side recalculation, FNOL eligibility/date checks, and status lookup.
+5. **HTTP/UI:** versioned routes, stable error contract, correlation IDs, safe frontend rendering, and health check.
+6. **Verification:** direct rating tests, API validation tests asserting no invalid writes, and endpoint smoke tests.
+7. **Packaging:** local instructions, Docker/Gunicorn path, and explicit SQLite/authentication production limitations.
 
 ## Key risks and open questions
-- Native Approval Process handoff behavior must be validated in a full-copy sandbox, especially duplicate prevention under retries.
-- Exact org API version, existing Deal Desk process name, and existing submission action are deployment-specific and intentionally left as metadata wiring TODOs.
-- Salesforce Flow limits and scheduled batch behavior must be measured for 100,000 pending records within 15 minutes.
-- Slack recipient lookup and retry mechanics depend on the org's enabled Salesforce Slack package/version.
-- Meera/Rhea user references must be environment-mapped through metadata; no user IDs are hard-coded.
-- Seven-year retention requires the organization's compliance archive process in addition to Salesforce retention settings.
+- The approved demonstration rating schedule must be replaced only through reviewed, versioned configuration for real insurance use.
+- SQLite is intentionally local-only; migrate to PostgreSQL before multi-user concurrency or production retention requirements.
+- No authentication is included in this MVP; keep the default bind address on localhost until authorization is added.
+- Jurisdiction-specific age, dates, retention, and claims rules require product/legal approval.
+- Free-text descriptions may contain sensitive data; logs must not include raw request bodies or descriptions.
+
+## Definition of scaffold completion
+The saved tree is importable, exposes the four API journeys, creates SQLite schema on startup, and contains the required test targets. Business implementation points are marked with focused TODOs rather than hidden in the UI.
+
+### Tree amendment
+The scaffold also includes `.github/workflows/ci.yml`, a minimal CI test workflow. This operational file belongs at the project root alongside the tree above and runs the pinned pytest suite on pushes and pull requests.
