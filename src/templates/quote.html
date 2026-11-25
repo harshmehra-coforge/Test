@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<form method="post" action="/quote">
+    <label>Driver Age: <input type="number" name="driver_age" required></label><br>
+    <label>Vehicle Type:
+        <select name="vehicle_type">
+            <option value="Car">Car</option>
+            <option value="SUV">SUV</option>
+            <option value="Truck">Truck</option>
+            <option value="Other">Other</option>
+        </select>
+    </label><br>
+    <button type="submit">Get Quote</button>
+</form>
+<div id="quote-result"></div>
+{% endblock %}
