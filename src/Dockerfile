@@ -1,6 +1,7 @@
-# Salesforce CLI container for repeatable metadata validation.
-FROM salesforce/cli:latest
-WORKDIR /workspace
+# Dockerfile for Auto Insurance Quote & FNOL Claim App
+FROM python:3.8-slim
+WORKDIR /app
 COPY . .
-# TODO: Inject authentication securely in CI; never bake credentials into the image.
-CMD ["sf", "project", "deploy", "preview", "--source-dir", "force-app"]
+RUN pip install --no-cache-dir -r requirements.txt
+EXPOSE 5000
+CMD ["python", "app.py"]
