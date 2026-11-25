@@ -1,0 +1,4 @@
+"""Minimal accessible layout for the self-contained MVP UI."""
+body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+section { border: 1px solid #ccd; border-radius: .5rem; padding: 1rem; margin: 1rem 0; }
+label { display: block; margin: .6rem 0; } input, select, textarea { display: block; width: min(100%, 28rem); padding: .4rem; } button { padding: .5rem .8rem; } pre { white-space: pre-wrap; }
