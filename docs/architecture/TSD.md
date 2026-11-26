@@ -1,308 +1,275 @@
-# Technical System Design (TSD) – Property & Casualty (P&C) Insurance Web Application
+# Technical System Design (TSD)
 
----
+## 1. System Overview
 
-## 1. System Overview & Solution Context
+The Property & Casualty (P&C) Insurance Web Application provides an end-to-end, local, and dependency-free solution for quoting, policy issuance/administration, and FNOL (First Notice of Loss) claims. It is implemented with Python 3.11+ (FastAPI backend), SQLite (embedded RDBMS), and a SPA HTML/JavaScript frontend. All features strictly enforce the P&C business rules for data integrity, eligibility, coverage, and claim validation, fulfilling the requirements set by the Business Requirements Document (BRD).
 
-This technical system design specifies an end-to-end, locally runnable Property & Casualty (P&C) Insurance web application, delivering full traceability and consistent coverage of all BA-dynamic-agent BRD requirements, by designing a minimal, modern Python 3.11+ system with FastAPI, SQLite, and a single-page HTML/JavaScript frontend. All core flows—quote, policy administration, and FNOL (First Notice of Loss) claim submission—are implemented as independent but interoperating services, strictly aligned to the business rules.
+Key functional domains:
+- **Quote**: Enables real-time quote generation with detailed eligibility and regulatory checks.
+- **Policy Administration**: Full policy lifecycle management with consistent policy numbering, versioning, and compliance.
+- **FNOL/Claims**: Guided first notice of loss submission, including loss type/cause validation and adjuster assignment.
 
-**Business Drivers:**  
-- Self-service quoting, policy, and claim flows  
-- Full policy coverage/exclusion validation  
-- Strict business rule execution for quote, policy, and claim lifecycles  
-- Rapid local demonstration (no external dependencies/auth, SQLite DB)
+All workflows are fully traceable, auditable, and designed for transparency in a regulated insurance context. 
 
-**Scope Mapping:**  
-All solution components directly map to and fulfill BR-01 to BR-18. Explicit mapping is detailed within each section for traceability.
 
----
+## 2. Technical Objectives & Quality Attributes
 
-## 2. Solution Architecture
+- **Traceability**: Direct mapping from requirements (BRD) to design, implementation, and test artifacts.
+- **Performance**: 95% of all valid API operations complete within 2s with 10 concurrent sessions on commodity hardware.
+- **Robust Validation**: All business rules enforceable at API, data, and UI layers—inputs rejected on any rule failure.
+- **Auditability**: Full policy/claim versioning, data retention, and traceable changes in SQLite for post-facto audit.
+- **Offline Operation**: No external dependencies; all logic and data in local, reproducible code and database.
+- **Accessibility & Usability**: SPA frontend supports screen readers and keyboard navigation (WCAG 2.1 AA), tested at 1080p.
+- **Extensibility**: Clean separation of model, API, and UI layers for streamlined future extension (e.g., new coverage, fraud detection).
 
-The system is composed of three service domains and a SPA UI:
+## 3. Solution Traceability Matrix
 
-- **Quote Service:** Rating, premium calculation, quote creation (BR-01 to BR-03)
-- **Policy Service:** Policy issuance, administration, endorsements, validation (BR-04 to BR-07, BR-08 to BR-11)
-- **Claim (FNOL) Service:** Submission, coverage validation, claim tracking (BR-08 to BR-14)
-- **SPA Frontend:** HTML/JS, consuming FastAPI endpoints; no authentication (BR-15–BR-17)
+| BRD Ref  | System Component                     | Design Section(s)         |
+|----------|--------------------------------------|---------------------------|
+| BR-01    | Quote Service (API, Model, Frontend) | 4, 5, 6                   |
+| BR-02    | Policy Model, Number Generator       | 5, 6                      |
+| BR-03    | UI/Session State                     | 4, 6                      |
+| BR-04    | Quote Validation, Policy Issue Flow  | 4, 6                      |
+| BR-05    | Policy Issue Endpoint/Model          | 4, 5, 6                   |
+| BR-06    | Policy Search APIs, Frontend         | 4, 5, 6                   |
+| BR-07    | Policy Status Model, Data Access     | 5, 6                      |
+| BR-08    | Export Logic, Model Histories        | 5, 8                      |
+| BR-09    | Claim Coverage Validation            | 4, 6, 7                   |
+| BR-10    | Claim Submission API, Validations    | 4, 6, 7                   |
+| BR-11    | Adjuster Assignment Algorithm        | 4, 6                      |
+| BR-12    | Validations/Audit Log                | 6, 8                      |
+| BR-13    | FNOL ID Generation Logic             | 5, 6                      |
+| BR-14    | FNOL Submission Workflow/API         | 4, 6                      |
+| BR-15    | Policy and Claim Validity Checks     | 5, 6, 7                   |
+| BR-16    | Coverage Matching Logic              | 5, 6, 7                   |
 
-### Service Boundaries
+## 4. System Architecture
 
-- Each service encapsulates:
-    - Endpoint set (FastAPI, RESTful)
-    - Data model mapped to SQLite tables (single database)
-    - Business logic executing and enforcing relevant BRs
-- Primary workflow diagram:
+### 4.1 Architectural Overview
+
+The system adopts a modular, layered architecture, facilitating strict separation between frontend (SPA), API (FastAPI), and storage (SQLite), co-located for offline, zero-dependency operation.
 
 ```mermaid
 flowchart TD
-    A[SPA Frontend] -- "Quote data" --> Q(Quote Service)
-    Q -- "Quote response" --> A
-    A -- "Issue Policy" --> P(Policy Service)
-    P -- "Policy confirmation" --> A
-    A -- "Submit Claim" --> C(Claim (FNOL) Service)
-    C -- "Claim status" --> A
-    P -- "Validate coverage" --> C
-    C -- "Coverage validated/denied" --> P
+    A[Browser SPA HTML/JS]
+B[FastAPI Application Python 3.11+]
+C[SQLite DB Embedded]
+
+    A <--> |HTTP/JSON, REST| B
+    B <--> |ORM, SQL| C
+subgraph B
+      B1[Quote API]
+B2[Policy API]
+B3[Claim API]
+B4[Adjuster Logic]
+B5[Validation Layer]
+B6[Export/Audit Module]
+end
+    B --> B1
+    B --> B2
+    B --> B3
+    B --> B4
+    B --> B5
+    B --> B6
 ```
 
-**Workflow:**
-1. User submits quote data (personal, property/vehicle details); Quote Service returns premium & summary.
-2. Accepting quote triggers Policy Service to issue/store policy.
-3. User files claim (FNOL); Claim Service validates policy/coverage (checks with Policy Service).
-4. SPA provides dynamic interaction; all forms validated client-side and server-side (see HTTP Matrix).
+#### Components:
+- **Frontend SPA**: Single-page HTML/js with AJAX calls for all data operations. Guides user through permitted workflows; prevents mix of policy/claim search per session (BR-03).
+- **API Layer (FastAPI)**: Implements all business logic, validation, CRUD for quote/policy/claim per established business rules.
+- **Persistence (SQLite)**: Normalized schema. All actions—policy, version, claim, audit—saved for integrity and auditability; enables exporting for post-hoc review (BR-08).
+- **Validation/Business Rules Module**: Centralizes all validation; called by endpoints and data layer. Ensures rules enforced at every stage.
+- **Adjuster Assignment**: Assigns claims only to adjusters licensed in policy country (BR-11).
+- **Audit/Export**: Full history (policy/claim/event/version) exportable for regulatory checks.
 
----
+### 4.2 UI/API Interaction Pattern
+- All workflow and data validation occurs API-first. The SPA only allows UI navigation that is possible under the current session's validity and rules.
+- No backend communications to external systems.
+- Error reporting and validation failures are communicated via HTTP status codes with descriptive JSON error payloads.
 
-## 3. Data Model & Schema (SQLite)
+### 4.3 Technology Justification
+- **FastAPI**: Chosen for its performance (async), strong OpenAPI generation, and straightforward integration with Python 3.11+.
+- **SQLite**: Embedded, reliable, zero-administration RDBMS. Satisfies requirements for offline operation and data auditability.
+- **SPA (HTML/JS)**: Ensures a modern, accessible user experience and enables responsive, real-time validation with browser compatibility.
 
-### Entity-Relationship Diagram
+## 5. Data Model & Schema (ERD)
 
+### 5.1 Entity-Relationship Diagram
 ```mermaid
 erDiagram
-    USER ||--o{ POLICY : "has"
-    POLICY ||--|{ COVERAGE : "includes"
-    POLICY ||--o{ QUOTE : "originates from"
-    POLICY ||--o{ CLAIM : "covered by"
-    COVERAGE ||--o{ CLAIM : "validates"
-    QUOTE {
+    CUSTOMER ||--o{ POLICY : owns
+    POLICY ||--o{ POLICYVERSION : versions
+    POLICY ||--o{ CLAIM : covers
+    CLAIM }o--|| ADJUSTER : assigned_to
+    POLICYVERSION ||--o{ COVERAGE : includes
+    CLAIM }o--|| COVERAGE : valid_for
+
+    CUSTOMER {
       int id PK
-      text applicant_name
-      text applicant_type
-      text risk_type
-      text property_info
-      real premium
-      real deductible
-      text status
-      int prior_claims
-      datetime created_at
+      string name
+      string address
+      string country
     }
     POLICY {
       int id PK
-      int quote_id FK
-      text policy_number
-      int user_id FK
-      text status
-      datetime effective_date
-      datetime expiry_date
-      datetime created_at
+      string policy_number (format: PR########)
+      int customer_id FK
+      string status
+      date effective_date
+      date expiry_date
+    }
+    POLICYVERSION {
+      int id PK
+      int policy_id FK
+      int version_number
+      date issued_at
+      string change_summary
     }
     COVERAGE {
       int id PK
-      int policy_id FK
-      text coverage_type
-      real limit
-      real deductible
-      text exclusions
+      int policyversion_id FK
+      string coverage_type (P/B)
+      string cause_code
     }
     CLAIM {
       int id PK
+      string claim_number (18-char alphanumeric)
       int policy_id FK
       int coverage_id FK
-      text loss_type
-      text loss_date
-      real claimed_amount
-      text status
-      text details
-      datetime created_at
+      date loss_date
+      string loss_type
+      string cause_code
+      float estimated_loss
+      string status
+      int adjuster_id FK
     }
-    USER {
+    ADJUSTER {
       int id PK
-      text name
-      text address
-      text email
-      text phone
+      string name
+      string country_licensed
     }
 ```
 
-### Data Rationale
+### 5.2 Rationale
+- **SQLite** is ideal for local, demo, and audit-friendly deployments. All database actions are transactionally safe and auditable off a single .db file.
+- Data normalization eliminates redundancy, supporting policy versioning (required by BR-05, BR-08) and loss mapping to coverage/cause (BR-09).
+- Foreign keys enforce referential integrity on policy, customer, and claim relations. Status fields/range rules implemented in model layer.
 
-- Flat, atomic tables (SQLite-optimized), no denormalization.
-- Indexed on PK/FK for fast lookup (quoting, validation, claim processing).
-- Coverage and exclusions/endorsements directly linked—enables instant eligibility and limits validation.
-- “prior_claims” and risk_info denormalized for business-rule-driven rating factors.
+### 5.3 Core Table/Field Notes
+- `policy_number` is unique and must match PR + 8 digits.
+- Policy versioning supports update/audit trail.
+- `claim_number` generated per BR-13; enforced unique, linked to policy and coverage.
+- `coverage_type`, `cause_code` strictly enumerated per BR-09—only allowed pairs in COVERAGE, CLAIM.
+- Timestamp (issued_at/loss_date) fields are type-checked and compared against policy effective/expiry for all validation (BR-10, BR-15).
 
-### SQLite DDL Extract
+## 6. API Design & Validation Responsibilities
 
-A subset (full schema in implementation):
+### 6.1 API Endpoint Overview
+- **/api/quote** (POST): Submit new quote request
+  - Validates all customer, property, coverage, and eligibility fields
+  - Checks policy number format, demographic, regulatory data in line with BR-01, BR-02
+  - Error: HTTP 422 with JSON error details on validation failure
+- **/api/policy** (POST/GET): Issue policy, search/view policies
+  - Validates quote eligibility before policy issuance (BR-04, BR-05)
+  - GET supports filters by policy_number, customer, status, etc.
+  - Policy versioning (see BR-05, BR-08) handled by version field
+- **/api/claim** (POST/GET): Submit and query FNOL claims
+  - Checks active/valid policy, coverage, cause, loss type and value (BR-09, BR-10, BR-15, BR-16)
+  - Assigns adjuster based on country matching (BR-11)
+  - Generates claim number per BR-13, returns unique code
+- **/api/export** (GET): Download policy/claim audit reports (CSV, JSON support)
 
-```sql
-CREATE TABLE quote (
-    id INTEGER PRIMARY KEY,
-    applicant_name TEXT NOT NULL,
-    applicant_type TEXT CHECK(applicant_type IN ('Individual', 'Business')) NOT NULL,
-    risk_type TEXT CHECK(risk_type IN ('Property', 'Auto')) NOT NULL,
-    property_info TEXT NOT NULL,
-    premium REAL NOT NULL,
-    deductible REAL NOT NULL,
-    status TEXT NOT NULL,
-    prior_claims INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-CREATE TABLE policy (
-    id INTEGER PRIMARY KEY,
-    quote_id INTEGER NOT NULL,
-    policy_number TEXT UNIQUE NOT NULL,
-    user_id INTEGER,
-    status TEXT NOT NULL,
-    effective_date DATETIME NOT NULL,
-    expiry_date DATETIME NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (quote_id) REFERENCES quote(id),
-    FOREIGN KEY (user_id) REFERENCES user(id)
-);
-CREATE TABLE coverage (
-    id INTEGER PRIMARY KEY,
-    policy_id INTEGER NOT NULL,
-    coverage_type TEXT NOT NULL,
-    limit REAL NOT NULL,
-    deductible REAL NOT NULL,
-    exclusions TEXT,
-    FOREIGN KEY (policy_id) REFERENCES policy(id)
-);
-CREATE TABLE claim (
-    id INTEGER PRIMARY KEY,
-    policy_id INTEGER NOT NULL,
-    coverage_id INTEGER,
-    loss_type TEXT NOT NULL,
-    loss_date TEXT NOT NULL,
-    claimed_amount REAL NOT NULL,
-    status TEXT NOT NULL,
-    details TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (policy_id) REFERENCES policy(id),
-    FOREIGN KEY (coverage_id) REFERENCES coverage(id)
-);
-```
----
+### 6.2 Input/Output Schemas (OpenAPI outline)
+- **QuoteRequest**: customer (object), property (object), coverage_type (string, enum), policy_number (string, PR########)
+- **PolicyRequest**: policy_number (string), customer_id, coverages (array of coverage_type+cause_code), versioning handled
+- **ClaimRequest**: policy_number, loss_date, loss_type/cause_code (enum), estimated_loss (float, >0)
+- **AdjusterAssignment**: calculated; not directly input
 
-## 4. API Contracts & HTTP Validation Matrix
+### 6.3 HTTP Validation Matrix
+| Endpoint         | Validation                                                     | On Failure      |
+|------------------|----------------------------------------------------------------|-----------------|
+| /api/quote       | Policy# format, all fields present/valid                       | 422 JSON error  |
+| /api/policy      | Existing quote valid, policy active, version correct           | 422 JSON error  |
+| /api/claim       | Policy active/inforce/valid, coverage/cause valid, dates valid | 422 JSON error  |
+| /api/export      | N/A (audit only)                                               | 400/404 error   |
 
-All APIs are RESTful; endpoints accept/emit JSON and strictly validate per OpenAPI 3.0+.
+All endpoints return OpenAPI-spec JSON error messages with field-level details. Downstream and UI audits use same validation logic (BR-12).
 
-### 4.1 Quote Service
+## 7. Business Rules Traceability Matrix
 
-| Endpoint         | Method | Request Body                | Success (200)                         | Fail/400+                      | BR ID  |
-|------------------|--------|-----------------------------|---------------------------------------|--------------------------------|--------|
-| `/api/quote`     | POST   | Applicant info, risk, prior_claims | Quote details (premium, deductible)   | Missing fields, invalid data   | BR-01, 02, 03 |
-| `/api/quote/{id}`| GET    | -                           | Quote details                         | Quote not found                | BR-03  |
+| Business Rule ID | Rule Description                                                                        | Enforced In                                             |
+|------------------|----------------------------------------------------------------------------------------|---------------------------------------------------------|
+| BR-01            | Quote requires all eligibility, demographic, regulatory requirements                    | /api/quote, Validation module, Frontend                  |
+| BR-02            | Policy number must be "PR" + 8 digits format                                           | All APIs, DB schema constraint                           |
+| BR-03            | Exclusive search: policy or claim per session                                           | UI session state, Frontend                              |
+| BR-04            | Only eligible quotes progress to policies                                               | /api/policy, Validation                                 |
+| BR-05            | Policy issuance: integrity checks, versioning supported                                 | /api/policy, PolicyVersion table                        |
+| BR-06            | Real-time policy/coverage verification                                                  | /api/policy, /api/claim, Validation                     |
+| BR-07            | Only valid, existing policies modifiable                                                | /api/policy, DB status checks                           |
+| BR-08            | Auditable/viewable/exportable policies                                                  | /api/export, DB audit log                               |
+| BR-09            | Claims limited to covered causes/types                                                  | /api/claim, COVERAGE/CLAIM tables, Validation           |
+| BR-10            | Loss/cause code match; loss estimate numeric>0; date in policy period                   | /api/claim, Validation                                  |
+| BR-11            | Adjuster must be licensed in same country as policy                                     | /api/claim, AdjusterAssignment                          |
+| BR-12            | All validation must be auditable (API/UI/batch)                                         | API validation, Frontend, Export features               |
+| BR-13            | FNOL numbers: unique 18-char alphanumeric incorporating policy info                     | /api/claim, Claim model                                 |
+| BR-14            | FNOL submission: format, code, loss value, date logic validations                       | /api/claim, Validation                                  |
+| BR-15            | No claim against expired/inactive/out-of-period policy                                  | /api/claim, Policy/Claim date logic                     |
+| BR-16            | Coverage matching: loss circ. must match active policy                                  | /api/claim, Validation                                  |
 
-Sample Request (POST):
+This table provides traceability from business rules to their technical realization, ensuring every rule is verifiably enforced by at least one application layer.
 
-```json
-{
-  "applicant_name": "John Smith",
-  "applicant_type": "Individual",
-  "risk_type": "Auto",
-  "property_info": "2015 Toyota Camry",
-  "prior_claims": 1,
-  "coverage_limit": 25000,
-  "deductible": 500
-}
-```
+## 8. Deployment & Operations
 
-Sample Response (200):
+### 8.1 Local Setup / Runbook
+- **Prerequisites**: Python 3.11+ installed (no other dependencies by design; all dependency code vendored in repo if used)
+- **Database**: On first run, SQLite DB (e.g., pnc.db) initialized with all required tables and sample data (if configured)
+- **Startup**:
+  1. `python app.py` launches FastAPI and serves SPA HTML/JS at / (index.html)
+  2. SPA is accessible at http://localhost:8000/
+- **Testing**: Run `python -m unittest test_app.py` (or pytest) for test suite
+- **Export**: Download policy and claim data via /api/export endpoint (CSV, JSON)
 
-```json
-{
-  "quote_id": 1,
-  "premium": 425.00,
-  "deductible": 500,
-  "coverage_limit": 25000,
-  "status": "quoted"
-}
-```
+### 8.2 Minimal Dockerfile (outline)
+- Official python:3.11-slim image as base
+- COPY app, models, templates, db setup scripts
+- ENTRYPOINT: `python app.py`
+- No extra requirements.txt; zero-external runtime
 
-### 4.2 Policy Service
+### 8.3 Operational Notes
+- Data stored entirely locally—no external connections
+- Audit/export logs for regulator review; recommend periodic CSV/JSON export backup
+- Designed for demo, PoC, or small-group operational use
+- SPA/Backend co-located; can be dockerized for ease of demo
 
-| Endpoint            | Method | Request Body           | Success (200)                   | Fail/400+                     | BR ID          |
-|---------------------|--------|------------------------|-------------------------------  |-------------------------------|----------------|
-| `/api/policy`       | POST   | Quote ID, applicant info | Policy details and confirmation | Incomplete info, fraud (block)| BR-04, 05, 06, 07 |
-| `/api/policy/{id}`  | GET    | -                      | Policy details                  | Policy not found              | BR-06          |
-| `/api/policy/{id}`  | PATCH  | Endorsement/updates    | Updated policy                  | Out-of-term, invalid update   | BR-07, 11      |
+### 8.4 Extensibility Points / Future Enhancements
+- **Add Deductibles, Underwriting, Fraud Detection**: Expand schema, add APIs/rules (clear model boundaries)
+- **Authentication**: Add user identity layer as needed
+- **Regulatory Hooks**: Extend audit/export for structured regulatory filings
+- **Scalable DB**: If needed, migrate SQLite schema to PostgreSQL/MySQL with strict compatibility
 
-### 4.3 Claim (FNOL) Service
+## 9. Non-Functional Requirements & Future-Proofing
 
-| Endpoint         | Method | Request Body                             | Success (200)          | Fail/400+                      | BR ID              |
-|------------------|--------|------------------------------------------|------------------------|-------------------------------|--------------------|
-| `/api/claim`     | POST   | Policy, coverage, loss details           | Claim record, status   | Inactive/expired policy, OOS   | BR-08 to BR-14     |
-| `/api/claim/{id}`| GET    | -                                        | Claim details          | Claim not found                | BR-14              |
+### 9.1 Performance
+- 95% of valid requests complete within 2s at 10 concurrent users (validated via API-level test suite)
+- Local operations only: I/O latency is disk-bound, easily monitored; optimize DB indexes on key fields
 
----
+### 9.2 Auditability & Accessibility
+- All critical actions are logged for future export
+- Historical audit: Each policy and claim carries version, status, timestamps, and all data for reconstructing entire business history
+- SPA supports basic accessibility: ARIA attributes, keyboard navigation, screen reader compatibility
 
-HTTP Validation Matrix (core):
+### 9.3 Concurrency and Reliability
+- SQLite set to allow up to 10 concurrent processes; data model avoids row-level contention
+- No single point of failure; DB snapshotting and export for backup and disaster recovery
 
-| Endpoint        | Valid Input     | Invalid Input           | HTTP Response   | Business Rule |
-|-----------------|----------------|------------------------|-----------------|--------------|
-| POST /quote     | All fields OK  | Missing applicant_name  | 400 Bad Request | BR-01,03     |
-| POST /policy    | Valid quote_id | Incomplete info         | 400 Bad Request | BR-05        |
-| POST /claim     | Valid policy   | Expired/inactive policy | 400,403         | BR-10,11     |
-| PATCH /policy   | Valid data     | Out-of-term change      | 400 Forbidden   | BR-07        |
+### 9.4 Security Scope
+- No authentication/authorization as required by scope; all interfaces visible locally
+- Defensive validation throughout minimizes risk of injection or corruption
+
+### 9.5 Future Enhancements
+- Add modular support for new P&C features (deductibles, fraud scoring, complex underwriting, regulatory interfaces)
+- API architecture and DB schema designed to support straightforward migration to scalable backend (PostgreSQL, etc.)
+- Enable structured export/report to support new regulatory or audit requirements
 
 ---
 
-## 5. Infrastructure, Deployment & Operations
-
-- **All assets local:** SQLite DB in project root (demo mode).
-- **Run:** `uvicorn app:app --reload` (FastAPI main), index.html in `/templates/`
-- **Minimal Dockerfile:**  
-    - FROM python:3.11-slim  
-    - COPY all files (app, models, SQLite schema, templates)  
-    - ENTRYPOINT: uvicorn app:app --host 0.0.0.0 --port 8000
-- **No external dependencies:** python stdlib, FastAPI, SQLite, Jinja2 (no 3rd party services)
-- **Runbook:** Startup, DB reset, testing—all local; documented in README  
-- **Integrated test suite:** e.g., `pytest test_app.py` (full requirement coverage)
-
----
-
-## 6. Non-Functional Requirements & Design Rationale
-
-| NFR                       | Target/Constraint                     | Design Rationale/Mapping           |
-|---------------------------|---------------------------------------|------------------------------------|
-| Local run                 | Python 3.11+, FastAPI, SQLite         | Simple for demo, no infra needed   |
-| No auth/external deps     | All services, assets in repo          | Demo-oriented; clear for BR-16/17  |
-| HTML/JS SPA               | One file, fetches all API endpoints   | Ease of use, full UX round-trip    |
-| Performance               | <300ms API latency (local) p99        | Small data, in-memory SQLite cache |
-| Cost                      | $0, all OSS, local-only               | No cloud/infra ops                 |
-| Traceability              | PRD <-> TSD <-> Test mapping by ID    | All BR IDs referenced everywhere   |
-| Extensibility             | Modular Python/FastAPI service split  | Clean path for more P&C flows      |
-
----
-
-## 7. Requirements Traceability & Coverage
-
-Cross-references from TSD sections (design, API, data model) to BR IDs (BR-01 to BR-18) are annotated throughout. This ensures traceability for QA, implementation, and test alignment:
-
-- Each API contract, DB schema, and business logic flow is explicitly tagged with BR coverage.
-- Test suite requirements mapped 1:1 with these BRs, ensuring no rule is omitted.
-- End-to-end mapping maintained in source-level docstrings and README.
-
----
-
-## 8. Extensibility & Future Enhancements
-
-- **Deductibles/autoscheduling:** Add field, calculation in both quote/policy/claim tables, update premium and payout logic.
-- **Fraud detection:** Integrate rule engine (future), flag suspicious data upon submission (BR-05 scenario 2).
-- **Underwriting rules:** Add table/log for pre-issuance/final review; enable cross-policy/jurisdictional logic.
-- **External feeds, compliance, state-level rules:** Optional, modular integration layer via FastAPI routers, preserving local mode.
-- **Authentication, RBAC:** Omitted by design, can be modularly added for production.
-
----
-
-## 9. Trade-Offs & Alternatives Considered
-
-- **SQLite vs. PostgreSQL:** Chose SQLite for minimal local dependency, instant setup for demo.
-- **No Auth:** Simplifies UX, focused on core business logic demonstration, not prod security/posture.
-- **Monolithic API, not microservices:** Matched to single-process FastAPI for simplicity and demo speed; logical service layering in code for future extraction.
-- **Single-page app (SPA):** Simplifies UX, local assets only—no build dependencies (Webpack/React).
-
----
-
-## 10. Appendix
-
-- **References:** See BRD references section.
-- **Further mapping:** API-to-BR, tests-to-BR documented within APIDoc strings and test cases.
-
----
-
-**All solution architecture, data, and API design elements trace directly to the supplied BRD; all BA business rules, validation scenarios, and system constraints are directly implemented or structured for testable coverage.**
+This design ensures all business requirements and rules are formally mapped to and enforced by technical components, with clear traceability, auditability, and extensibility for evolving P&C insurance needs.
